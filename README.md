@@ -1,5 +1,8 @@
 # CAB403-group
 
+# Ideas for testing
+    - control the speed at which the events like spawning cars and cars parking so we slow it down and observe things working correctly
+
 # TODO
 	- (DONE) write queue lib
 		- only needs init, push and pop

@@ -1,25 +1,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include "queue.h"
 
-typedef struct node{
-	char * rego;
-	struct node * next;
-	struct node * prev;
-} Node;
-
-typedef struct queue{
-	struct node * head;
-	struct node * tail;
-} Queue;
-
-Queue * init_queue(){
-	Queue * queue = (Queue*)malloc(sizeof(Queue));
-
+void init_queue(Queue * queue){
 	queue->head = NULL;
 	queue->tail = NULL;
+}
 
-	return queue;
+void free_queue_nodes(Queue * queue){
+    if(queue == NULL){
+        return; 
+    }
+    char * val;
+    while((val = pop(queue)) != NULL){
+        // free the value memory
+        free(val);  
+    }
 }
 
 /* pushes a new node to the back of the queue
@@ -84,44 +81,53 @@ int main() {
 	// 3. removing a node form a queue with one node
 	// 4. adding a new node to a queue with one node
 	// 5. removing a node from a queue with two nodes
-
-	Queue * queue = init_queue();
+    // 6. adding a sequence of nodes and poping them off making sure they are in the correct order
+    // 7. test freeing queue nodes an empty queue
+    // 8. test freeing queue nodes with one element
+    // 9. test freeing queue nodes with multiple elements
+	
+    Queue queue;
+    init_queue(&queue);
 	
 	// 1. removing a node from an empty queue
-	char * res = pop(queue);
+	char * res = pop(&queue);
 	assert(res == NULL);
 
 	// 2. adding a new node to an empty queue
 	char * r1 = "r1";
-	push(queue, r1); 
-	assert(queue->head == queue->tail);
-	assert(queue->head->rego == r1);
-	assert(queue->head->next == NULL);
-	assert(queue->head->prev == NULL);
+	push(&queue, r1); 
+	assert(queue.head == queue.tail);
+	assert(queue.head->rego == r1);
+	assert(queue.head->next == NULL);
+	assert(queue.head->prev == NULL);
 
 	// 3. removing a node form a queue with one node
-	res = pop(queue);
+	res = pop(&queue);
 	assert(res == r1);
-	assert(queue->head == NULL);
-	assert(queue->tail == NULL);
+	assert(queue.head == NULL);
+	assert(queue.tail == NULL);
 	
 	// 4. adding a new node to a queue with one node
 	char * r2 = "r2";
-	push(queue, r1); 
-	push(queue, r2);
-	assert(queue->head != queue->tail);
-	assert(queue->head->rego == r1);
-	assert(queue->tail->rego == r2);
-	assert(queue->head->next == queue->tail);
-	assert(queue->tail->prev == queue->head);
+	push(&queue, r1); 
+	push(&queue, r2);
+	assert(queue.head != queue.tail);
+	assert(queue.head->rego == r1);
+	assert(queue.tail->rego == r2);
+	assert(queue.head->next == queue.tail);
+	assert(queue.tail->prev == queue.head);
 	
 	// 5. removing a node from a queue with two nodes
-	res = pop(queue);
+	res = pop(&queue);
 	assert(res == r1);
-	assert(queue->head == queue->tail);
-	assert(queue->head->rego == r2);
-	assert(queue->head->next == NULL);
-	assert(queue->head->prev == NULL);
-
+	assert(queue.head == queue.tail);
+	assert(queue.head->rego == r2);
+	assert(queue.head->next == NULL);
+	assert(queue.head->prev == NULL);
+    // TODO:6. adding a sequence of nodes and poping them off making sure they are in the correct order
+    // TODO:7. test freeing queue nodes an empty queue
+    // TODO:8. test freeing queue nodes with one element
+    // TODO:9. test freeing queue nodes with multiple elements
+	
 	return 0;
 }
