@@ -9,6 +9,8 @@
 #include "libs/types.h"
 #include "libs/macros.h"
 
+// TESTLUKE
+
 // max number of entrances, exits and levels is 5, always just have 5 elements as 5 ints is small
 int thread_number[5] = {1, 2, 3, 4, 5};
 
