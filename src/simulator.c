@@ -98,14 +98,17 @@ void * spawner_thread(void * arg){
 }
 
 void * entrance_queue_thread(void * arg){
-    
+    // get the thread number (1-5)
+    int tn = *(int*)arg;
+}
+
+
+void * exit_thread(void * arg){
+    // get the thread number (1-5)
+    int tn = *(int*)arg;
 }
 
 void * car_thread(void * arg){
-    
-}
-
-void * exit_thread(void * arg){
     
 }
 
