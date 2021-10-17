@@ -14,10 +14,13 @@ typedef struct queue{
 
 // sets up the queue ready for use
 void init_queue(Queue* queue);
+
 // frees any nodes on the queue including the values they hold and free's the queue memory as well
 void free_queue_nodes(Queue * queue);
+
 // pushes rego onto the queue, rego is assumed to be stored on the heap, no copying is done
 void push(Queue *queue, char * rego);
+
 // pops the next value off of the queue
 char * pop(Queue * queue);
 
