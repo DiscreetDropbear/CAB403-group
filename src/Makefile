@@ -5,10 +5,10 @@ CFLAGS=-lpthread -lrt
 	$(CC) -g -c -o $@ $< $(CFLAGS)
 
 simulator: simulator.o libs/queue.o
-	$(CC) -g -o simulator simulator.o libs/queue.o $(CFLAGS)
+	$(CC) -g -o simulator.out simulator.o libs/queue.o $(CFLAGS)
 
 manager: manager.o
-	$(CC) -g -o manager manager.o $(CFLAGS)
+	$(CC) -g -o manager.out manager.o $(CFLAGS)
 
 .PHONY: clean
 

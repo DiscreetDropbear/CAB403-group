@@ -103,8 +103,6 @@ void * spawner(void * arg){
 void * entrance_queue(void * arg){
     // get the thread number (1-5)
     int tn = *(int*)arg;
-    printf("thread num = %d\n", tn);
-    sleep(10);
 }
 
 
@@ -114,6 +112,7 @@ void * exit_thr(void * arg){
 }
 
 void * car(void * arg){
+    char * rego = (char*)arg;
 }
 
 int main() {
@@ -163,10 +162,10 @@ int main() {
 
     pthread_join(*spawner_thread, &retval);  
 
+    /// cleanup all the memory used
     /// close shared memory
     shm_unlink("PARKING");
 
-    printf("SIMULATOR FINISHED");
-    sleep(1);
+    printf("SIMULATOR FINISHED\n");
     return 0;
 }
