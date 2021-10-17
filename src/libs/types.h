@@ -7,13 +7,10 @@
 #define TYPES_H
 
 #include <pthread.h>
-#include <queue.h>
 
 #define ENTRANCES 5
 #define EXITS 5
 #define LEVELS 5
-
-
 
 struct lpr {
     pthread_mutex_t m;

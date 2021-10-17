@@ -73,6 +73,7 @@ char * pop(Queue * queue){
 	return rego;
 }
 
+/*
 int main() {
 	
 	// TESTS
@@ -131,3 +132,4 @@ int main() {
 	
 	return 0;
 }
+*/
