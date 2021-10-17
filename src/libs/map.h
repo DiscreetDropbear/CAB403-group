@@ -30,9 +30,8 @@ void* insert(Map* map, char* key, void* value);
 
 // removes a key:value pair from the map returning the value given the
 // key exists in the map, other wise NULL is returned
-void* remove(Map* map, char* key);
+void* delete(Map* map, char* key);
 
 // returns true if the map has the given key
-bool exists(Map* map, char* key);
-
+int exists(Map* map, char* key);
 #endif
