@@ -127,7 +127,7 @@ int main() {
 
     /// resize shared memory
     ftruncate(shm_fd, 2920);
-    
+
     /// memory map the shared memory
 	volatile void * shm = (volatile void *) mmap(0, 2920, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     /// setup the mutex's and condition variables for use between processes
@@ -162,7 +162,16 @@ int main() {
 
     pthread_join(*spawner_thread, &retval);  
 
-    /// cleanup all the memory used
+    /// cleanup the queues used won't bother locking as all other threads
+    /// are now dead
+    for(int i = 0; i < EXITS; i++){
+        free_queue(&exit_queue[i].q);
+    }
+
+    for(int i = 0; i < ENTRANCES; i++){
+        free_queue(&entrance_queue[i].q);
+    }
+
     /// close shared memory
     shm_unlink("PARKING");
 
