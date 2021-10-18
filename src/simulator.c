@@ -96,7 +96,33 @@ void init_shared_queues(){
     }
 }
 
-generate_rego()
+
+void * generate_rego(){ 
+
+    // Generate three random letters
+	int l;
+	for (l = 0; l < 4; l++) {
+		int letters = (rand() % (90 - 65 + 1)) + 65;
+	}
+
+    // Generate random numbers
+ 	int i;
+	for (i = 0; i < 4; i++) {
+		int numbers = (rand() %(9 - 0 + 1));
+	}   
+
+    //rego[] = [char letter1, char letter2, char letter3,int number1, int number2, int number3];
+
+}
+
+void * select_valid_rego(map * outside){
+
+    // select a rego from buffer array (plateFileReader)
+    // must make sure rego is also not outisde
+
+}
+
+
 
 char * get_next_rego(map * inside, map * outside){
     char * rego;
@@ -106,7 +132,6 @@ char * get_next_rego(map * inside, map * outside){
     if(generate = 1){
         while(1){
             rego = generate_rego(); 
-
             //will need to check whether the rego is inside or outside & that it isn't already a valid rego
         }
     }else{
@@ -155,6 +180,9 @@ int main() {
 	pthread_t * entrance_threads = malloc(sizeof(pthread_t) * ENTRANCES);
     pthread_t * exit_threads = malloc(sizeof(pthread_t) * EXITS);
     pthread_t * spawner_thread = malloc(sizeof(pthread_t)); 
+
+    // ranf for number plate generator
+    srand(time(0));
 
     /// start car entry threads (one per entry)
     for(int i = 0; i < ENTRANCES; i++){
