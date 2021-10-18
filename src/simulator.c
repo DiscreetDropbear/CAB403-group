@@ -96,6 +96,22 @@ void init_shared_queues(){
     }
 }
 
+char * get_next_rego(Map * inside, Map * outside){
+    char * rego;
+
+    int generate = (rand() % 2) != 0; //will provide 1 or 0
+
+    if(generate){
+        while(1){
+            rego = generate_rego(); 
+
+            //will need to check whether the rego is inside or outside & that it isn't already a valid rego
+        }
+    }else{
+        rego = select_valid_rego(outside);
+    }
+}
+
 void * spawner(void * arg){
     
 }
