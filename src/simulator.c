@@ -96,12 +96,14 @@ void init_shared_queues(){
     }
 }
 
-char * get_next_rego(Map * inside, Map * outside){
+generate_rego()
+
+char * get_next_rego(map * inside, map * outside){
     char * rego;
 
     int generate = (rand() % 2) != 0; //will provide 1 or 0
 
-    if(generate){
+    if(generate = 1){
         while(1){
             rego = generate_rego(); 
 
