@@ -71,11 +71,15 @@ void run_map_tests(){
     assert(map.size == 8);
 
 
-    // map retrieves a key thats in the map
-    // map returns null when searching for a key that isn't in the map
-    
-    // returns the old value when inserting a key that already exists
+    // deleting a key thats in the map returns the old value 
+    int * oldv = delete(&map, keys[0]);
+    assert(oldv == &values[0]); 
 
-    // find_key returns the correct index when 
-    //
+    // map returns null when searching for a key that isn't in the map
+    oldv = delete(&map, keys[0]);
+    assert(oldv == NULL); 
+
+    // returns the old value when inserting a key that already exists
+    oldv = insert(&map, keys[1], &values[0]);  
+    assert(oldv == &values[1]);
 }
