@@ -8,13 +8,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "libs/types.h"
+#include "libs/billing.h"
+#include "libs/map.h"
 
 // max number of entrances, exits and levels is 5, 
 // always just have 5 elements in this array
 // as 5 ints is small
 int thread_number[5] = {1, 2, 3, 4, 5};
 
-
+pthread_mutex_t billing_m;
+Billing billing;
 
 void* entrance_thr(void* arg){
     int tn = *(int*)arg;    
@@ -29,13 +32,21 @@ void* level_thr(void*arg){
 }
 
 int main(){
-
     /// setup shared memory
 	int shm_fd = shm_open("PARKING", O_RDWR, 0);
     if(shm_fd < 0){
         printf("failed opening shared memory with errno: %d\n", errno);
         return -1;
     }
+
+    // set up the allowed license plate map here
+
+    // setup the billing and billing mutex
+    init_billing(&billing);
+    pthread_mutex_init(billing_m, NULL);
+
+    // setup the level data and level data mutex
+    //init_level_data(&level_data);
 
     pthread_t * entrance_threads = malloc(sizeof(pthread_t) * ENTRANCES);
     pthread_t * exit_threads = malloc(sizeof(pthread_t) * EXITS);

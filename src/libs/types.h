@@ -11,6 +11,7 @@
 #define ENTRANCES 5
 #define EXITS 5
 #define LEVELS 5
+#define LEVEL_CAPACITY 25
 
 struct lpr {
     pthread_mutex_t m;
