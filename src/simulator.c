@@ -97,31 +97,30 @@ void init_shared_queues(){
 }
 
 
-void * generate_rego(){ 
+char * generate_rego(){ 
 
-    char letter[3];
+    int letter[3];
     int number[3];
-    // Generate three random letters
-	int l;
-	for (l = 0; l < 4; l++) {
-		letter[l] = (rand() % (90 - 65 + 1)) + 65;
-	}
+
+ 	int l;
+	for (l = 0; l < 3; l++) {
+        letter[l] = rand() %(90 - 65 + 1) + 65;
+    }
 
     // Generate three random numbers
  	int i;
-	for (i = 0; i < 4; i++) {
-		number[i] = (rand() %(9 - 0 + 1));
-	}   
+	for (i = 0; i < 3; i++) {
+        number[i] = rand() %(57 - 48 + 1) + 48;
+    }
 
-    float* rego = malloc(6 * sizeof(float)); // array to hold the result
-
-    memcpy(rego,     letter, 3 * sizeof(float)); 
-    memcpy(rego + 3, number, 3 * sizeof(float)); 
+    char* rego[6] = {number[0],number[1], number[2], letter[0],letter[1], letter[2]};
 
 }
 
 
 void * select_valid_rego(map * outside){
+
+
 
     // select a rego from buffer array (plateFileReader)
     // must make sure rego is also not outisde
