@@ -2,8 +2,15 @@
 #define BILLING_H
 
 #include <time.h>
+#include <pthread.h>
+#include "map.h"
 
-void insert_rego(char * rego);
- * get_rego(char * rego);
+typedef struct billing{
+    Map map;
+} Billing;
+
+void init_billing(Billing* billing);
+void insert_rego(Billing* billing, char* rego);
+timespec * remove_rego(Billing* billing, char* rego);
 
 #endif
