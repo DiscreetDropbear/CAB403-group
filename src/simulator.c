@@ -99,21 +99,27 @@ void init_shared_queues(){
 
 void * generate_rego(){ 
 
+    char letter[3];
+    int number[3];
     // Generate three random letters
 	int l;
 	for (l = 0; l < 4; l++) {
-		int letters = (rand() % (90 - 65 + 1)) + 65;
+		letter[l] = (rand() % (90 - 65 + 1)) + 65;
 	}
 
-    // Generate random numbers
+    // Generate three random numbers
  	int i;
 	for (i = 0; i < 4; i++) {
-		int numbers = (rand() %(9 - 0 + 1));
+		number[i] = (rand() %(9 - 0 + 1));
 	}   
 
-    //rego[] = [char letter1, char letter2, char letter3,int number1, int number2, int number3];
+    float* rego = malloc(6 * sizeof(float)); // array to hold the result
+
+    memcpy(rego,     letter, 3 * sizeof(float)); 
+    memcpy(rego + 3, number, 3 * sizeof(float)); 
 
 }
+
 
 void * select_valid_rego(map * outside){
 
