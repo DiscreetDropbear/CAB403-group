@@ -75,16 +75,18 @@ void run_map_tests(){
     assert(map.size > 1);
 
     // deleting a key thats in the map returns the old value 
-    void * oldv = remove_key(&map, keys[0]);
-    assert(oldv == &values[0]); 
+    res_t oldv = remove_key(&map, keys[0]);
+    assert(oldv.exists = true);
+    assert(oldv.value == &values[0]); 
 
-    // map returns null when deleting a key that isn't in the map
+    // map returns a ret with ret.exists = false when deleting a key that isn't in the map
     oldv = remove_key(&map, keys[0]);
-    assert(oldv == NULL); 
+    assert(oldv.exists == false); 
 
     // returns the old value when inserting a key that already exists
     oldv = insert(&map, keys[1], &values[0]);  
-    assert(oldv == &values[1]);
+    assert(oldv.exists = true);
+    assert(oldv.value == &values[1]);
 
     pair_t pair = get_nth_item(&map, 5);
     assert(pair.key != NULL);
