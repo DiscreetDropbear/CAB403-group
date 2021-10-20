@@ -19,6 +19,15 @@ struct pair{
     void* value;
 };
 
+// result type for remove_from_level
+// so we can tell if it was in the level or not
+// and what the return value was if it was in the 
+// level
+typedef struct res{
+    bool exists;
+    void* value;
+} res_t;
+
 typedef struct item item_t;
 struct item{
     char* key;
@@ -46,11 +55,11 @@ void free_map(Map* map);
 
 // inserts a key:value pair into the map returning the previous value
 // if it exists
-void* insert(Map* map, char* key, void* value); 
+res_t insert(Map* map, char* key, void* value); 
 
 // removes a key:value pair from the map returning the value given the
 // key exists in the map, other wise NULL is returned
-void* remove_key(Map* map, char* key);
+res_t remove_key(Map* map, char* key);
 
 // returns true if the map has the given key
 bool exists(Map* map, char* key);

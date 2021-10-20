@@ -9,13 +9,14 @@ int find_key(Map* map, char* key);
 int available_spot(Map* map);
 void grow_map(Map* map);
 void free_item_list(item_t * item);
-void* internal_insert(Map* map, item_t * item);
+res_t internal_insert(Map* map, item_t * item);
 item_t* internal_search(Map*map, item_t* item);
 size_t get_index(Map* map, char* key);
 
 // sets up the map ready for use
 void init_map(Map* map, unsigned int initial_size){
     assert(map != NULL);
+
     if( initial_size != 0){
         map->size = initial_size;
     }
@@ -94,7 +95,7 @@ pair_t get_nth_item(Map* map, size_t n){
 
 // inserts a key:value pair into the map returning the previous value
 // if it exists
-void* insert(Map* map, char* key, void* value){
+res_t insert(Map* map, char* key, void* value){
     assert(map->size != 0);
     assert(key != NULL);
     assert(value != NULL);
@@ -119,16 +120,19 @@ void* insert(Map* map, char* key, void* value){
 // removes a key:value pair from the map returning either value given the
 // key exists or NULL otherwise 
 // Note: it is up to the caller to free any value that is returned
-void* remove_key(Map* map, char* key){
+res_t remove_key(Map* map, char* key){
     assert(map != NULL);  
     assert(key != NULL);
         
     size_t index = get_index(map, key);
+    res_t res;
+    res.exists = false;
+    res.value = NULL;
     
     // there are no items in the bucket
     // the key doesn't exist
     if(map->buckets[index] == NULL){
-        return NULL;
+        return res;
     }
    
     // the key is the first item in the bucket
@@ -137,12 +141,14 @@ void* remove_key(Map* map, char* key){
         map->buckets[index] = tmp->next;
         
         // save the value, free the key and then the item
-        void * value = tmp->value;
+        res.exists = true;
+        res.value = tmp->value;
+
         free(tmp->key);
         free(tmp);
 
         map->items--;
-        return value;
+        return res;
     }
     
 
@@ -160,13 +166,14 @@ void* remove_key(Map* map, char* key){
             last->next = current->next; 
 
 
-            void * value = current->value;
+            res.exists = true;
+            res.value = current->value;
+
             free(current->key);
-            assert(current != NULL);
             free(current);
 
             map->items--;
-            return value;
+            return res;
         }
 
         
@@ -175,7 +182,7 @@ void* remove_key(Map* map, char* key){
     }
 
     // nothing was found
-    return NULL;
+    return res;
 }
 
 bool exists(Map* map, char* key){
@@ -209,10 +216,10 @@ bool exists(Map* map, char* key){
     return false;
 }
 
-/*
- * The following functions are required for the implementation but
- * are not exposed as a part of the api
- */
+
+//
+/// THE FOLLOWING FUNCTIONS ARE NOT A PART OF THE PUBLIC API
+//
 
 // This function was taken from the hashtable.c file in the week 3 practical!
 // The Bernstein hash function.
@@ -261,12 +268,17 @@ void free_item_list(item_t * item){
 // pointers 
 //
 // increments map->items if this is a new item
-void* internal_insert(Map* map, item_t * item){
+res_t internal_insert(Map* map, item_t * item){
+    res_t res;
+    res.exists = false;
+    res.value = NULL;
+
     // find the key if it already exists
     item_t* ret = internal_search(map, item);
     if(ret != NULL){
         // get the old value so we can return it
-        void* value = ret->value;
+        res.value = ret->value;
+        res.exists = true;
         // insert the new value into the item 
         ret->value = item->value;
 
@@ -276,7 +288,7 @@ void* internal_insert(Map* map, item_t * item){
         
         free(item->key);
         free(item);
-        return value;
+        return res;
     }
 
     size_t index = get_index(map, item->key); 
@@ -296,7 +308,7 @@ void* internal_insert(Map* map, item_t * item){
     map->items++;
     // there was no previous value so there is nothing
     // to return
-    return NULL;
+    return res;
 }
 
 // returns a pointer to the item_t that holds the key
