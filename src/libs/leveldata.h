@@ -21,10 +21,11 @@ typedef struct res{
     bool value;
 } res_t
 
-
 void init_level_data(level_data_t * ld);
 // returns the first available level that has free parks 
 size_t get_available_level(level_data_t * ld);
+
+res_t search_level(level_data_t* ld, size_t l_num, char* rego);
 // tries to insert the key:value pair in the given level, returns true if successfull
 // or false otherwise
 bool insert_in_level(level_data_t *ld, size_t l_num, char* key, void* val);

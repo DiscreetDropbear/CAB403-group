@@ -42,8 +42,9 @@ void free_map(Map* map){
 }
 
 pair_t get_nth_item(Map* map, size_t n){
+    pair_t pair = {key: NULL, value: NULL};
     if(map->items == 0){
-
+        return pair;         
     }
 
     // since there may not be n items in the map
@@ -75,7 +76,9 @@ pair_t get_nth_item(Map* map, size_t n){
                     }
 
                     // put a pair_t on the heap ready for returning
-                    pair_t pair = {key: current->key, value: current->value};
+                    pair.key = current->key;
+                    pair.value = current->value;
+
                     // free the item_t
                     current->next = NULL;
                     free(current);
@@ -89,8 +92,34 @@ pair_t get_nth_item(Map* map, size_t n){
         }    
     }
 
-    pair_t pair = {key: NULL, value: NULL};
     return pair;
+}
+
+// returns a res_t holding the value if there is one for the given key.
+//
+// NOTE: this value is not copied and referres to the same memory as the one in the
+// map, this means if some other thread removes this rego and free's the value that
+// this will be an invalid pointer, the result should only be dereferenced when you 
+// hold an exclusive lock to the map and once you release this lock all bets are off
+// as to the the validity of the pointer
+//
+// THE VALUE POINTER RETURNED IN RES_T MUST NOT BE FREED AS ITS STILL USED BY THE MAP
+// AND SHOULD BE FREED BY THE CALLER TO remove_key
+res_t search(Map* map, char* key){
+    assert(map->size != 0);
+    assert(key != NULL);
+    item_t* item =  internal_search(map, key);
+
+    res_t res;
+    if(item != NULL){
+        res.exists = true;
+        res.value = item.value;
+        return res;
+    }
+
+    res.exists = false;
+    res.value = NULL;
+    return res;
 }
 
 // inserts a key:value pair into the map returning the previous value
