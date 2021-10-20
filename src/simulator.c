@@ -113,20 +113,24 @@ char * generate_rego(){
         number[i] = rand() %(57 - 48 + 1) + 48;
     }
 
-    char* rego[6] = {number[0],number[1], number[2], letter[0],letter[1], letter[2]};
+    char *rego[6] = {number[0],number[1], number[2], letter[0],letter[1], letter[2]};
 
 }
 
 
 void * select_valid_rego(map * outside){
 
+    while(1){ 
+        int num = rand() %(99 + 1);
+        char *rego[6] = {value[num][0],value[num][1],,value[num][2]value[num][3],value[num][4],value[num][5]}; 
+        //random num corresponding to row of matrix of allowed rego's
 
+        //if ( car isnt already outside ){
+            //break;
+        //}
 
-    // select a rego from buffer array (plateFileReader)
-    // must make sure rego is also not outisde
-
+    }
 }
-
 
 
 char * get_next_rego(map * inside, map * outside){
@@ -137,7 +141,6 @@ char * get_next_rego(map * inside, map * outside){
     if(generate = 1){
         while(1){
             rego = generate_rego(); 
-            //will need to check whether the rego is inside or outside & that it isn't already a valid rego
         }
     }else{
         rego = select_valid_rego(outside);
