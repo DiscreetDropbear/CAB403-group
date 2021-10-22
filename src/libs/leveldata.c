@@ -35,18 +35,21 @@ size_t get_available_level(level_data_t* ld){
 
 // tries to insert the key:value pair in the given level, returns true if successfull
 // or false otherwise
+// rego is copied and then inserted into the map so the callers copy will still be
+// valid and they must free it
 bool insert_in_level(level_data_t* ld, size_t l_num, char* rego, bool val){
     assert(l_num <= ld->num_levels);
     if(ld->levels[l_num]->free_parks > 0){
+        char* regoc = malloc(7);
+        memcpy((void*)regoc, rego, 7);
         // just using the void* as a bool value instead of a pointer
-        res_t res = insert(ld->levels[l_num-1]->cars, rego, (void*)val);
+        res_t res = insert(ld->levels[l_num-1]->cars, regoc, (void*)val);
         // there shouldn't be any case where we are inserting a rego into a level and 
         // there is already the same rego there
         assert(res.exists == false); 
         ld->levels[l_num-1]->free_parks--;
         return true;
     }
-    
     return false;
 }
 
