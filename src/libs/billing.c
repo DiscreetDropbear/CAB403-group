@@ -1,32 +1,42 @@
 #include <time.h>
 #include <assert.h>
 #include <stdio.h>
-#include "map.h"
+#include <stdlib.h>
+#include <string.h>
+#include "../include/billing.h"
+#include "../include/utils.h"
 
-int init_billing(Billing* billing){
+void init_billing(billing_t* billing){
     assert(billing != NULL);
    
-    init_map(&billing->map);
-    return 0;
+    init_map(&billing->map, 0);
 }
 
-void* insert_rego(Billing* billing, char * rego){
+void insert_rego(billing_t* billing, char * rego){
     assert(billing != NULL);
+    assert(rego != NULL);
     // copy the rego
-    char * regoc = malloc(7);
-    memcpy((void*)regoc, (void*)rego, 7);
-
-    struct timespec* time = calloc(sizeof(struct timespec));
-    struct timespec* res;
+    struct timespec* time = calloc(1, sizeof(struct timespec));
 	clock_gettime(CLOCK_MONOTONIC, time);
 
-    res = insert(&billing->map, regoc, (void*)time);
+    (void)insert(&billing->map, rego, (void*)time);
 }
 
-// returns the timespec for a given rego removing it from the 
-// set of regos in the map, its the callers job to free the memory both
-// for the timespec and 
-timespec * remove_rego(Billing* billing, char * rego){
+// returns the number of milliseconds the car was inside the car park 
+// removing the rego from the map
+int remove_rego(billing_t* billing, char * rego, unsigned long* timespent){
     assert(billing != NULL);
-    return remove_key(&billing->map, rego);
+    res_t res = remove_key(&billing->map, rego);
+
+    if(res.exists == true){
+        // calculate the time spent in the car park
+        int r = time_diff(*(struct timespec*)res.value, timespent);        
+        if(r != 0){
+            return r;
+        }
+        return 0;
+    }
+    else{
+        return -1; 
+    }
 }

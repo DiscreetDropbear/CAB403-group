@@ -3,14 +3,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
-#include "map.h"
+#include "../include/map.h"
 
 int find_key(Map* map, char* key);
 int available_spot(Map* map);
 void grow_map(Map* map);
 void free_item_list(item_t * item);
 res_t internal_insert(Map* map, item_t * item);
-item_t* internal_search(Map*map, item_t* item);
+item_t* internal_search(Map*map, char* key);
 size_t get_index(Map* map, char* key);
 
 // sets up the map ready for use
@@ -113,7 +113,7 @@ res_t search(Map* map, char* key){
     res_t res;
     if(item != NULL){
         res.exists = true;
-        res.value = item.value;
+        res.value = item->value;
         return res;
     }
 
@@ -134,10 +134,13 @@ res_t insert(Map* map, char* key, void* value){
         grow_map(map); 
     }
     
+    // item to insert
     item_t * item = calloc(1, sizeof(item_t));
+    // copy the key so the callers copy is still valid after the call
     int len = strlen(key)+1;
     item->key = malloc(len);
     memcpy(item->key, key, len); 
+
     item->value = value;
     item->next = NULL;
     
@@ -303,7 +306,7 @@ res_t internal_insert(Map* map, item_t * item){
     res.value = NULL;
 
     // find the key if it already exists
-    item_t* ret = internal_search(map, item);
+    item_t* ret = internal_search(map, item->key);
     if(ret != NULL){
         // get the old value so we can return it
         res.value = ret->value;
@@ -341,10 +344,10 @@ res_t internal_insert(Map* map, item_t * item){
 }
 
 // returns a pointer to the item_t that holds the key
-item_t* internal_search(Map*map, item_t* item){
+item_t* internal_search(Map*map, char* key){
     assert(map != NULL);
-    assert(item != NULL);
-    size_t index = get_index(map, item->key);
+    assert(key != NULL);
+    size_t index = get_index(map, key);
 
     // there are no items in the bucket
     // so the key doesn't exist
@@ -353,7 +356,7 @@ item_t* internal_search(Map*map, item_t* item){
     }
    
     // the key is the first item in the bucket
-    if(strcmp(map->buckets[index]->key, item->key) == 0){
+    if(strcmp(map->buckets[index]->key, key) == 0){
         return map->buckets[index];
     }
     
@@ -362,7 +365,7 @@ item_t* internal_search(Map*map, item_t* item){
     // that we will need to search through 
     while(current != NULL){
         // found the key 
-        if(strcmp(current->key, item->key) == 0){
+        if(strcmp(current->key, key) == 0){
             return current;
         }
         

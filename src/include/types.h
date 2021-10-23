@@ -16,7 +16,7 @@
 struct lpr {
     pthread_mutex_t m;
     pthread_cond_t c;
-    char license_plate[6];
+    char rego[6];
 };
 
 struct boom {
