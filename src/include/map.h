@@ -53,6 +53,16 @@ void init_map(Map* map, unsigned int initial_size);
 // free's all of the memory that map holds, including the values
 void free_map(Map* map);
 
+// returns a res_t holding the value if there is one for the given key.
+//
+// NOTE: this value is not copied and referres to the same memory as the one in the
+// map, this means if some other thread removes this rego and free's the value that
+// this will be an invalid pointer, the result should only be dereferenced when you 
+// hold an exclusive lock to the map and once you release this lock all bets are off
+// as to the the validity of the pointer
+// THE VALUE POINTER IN RES_T MUST NOT BE FREED AS ITS STILL USED BY THE MAP
+res_t search(Map* map, char* key); 
+
 // inserts a key:value pair into the map returning the previous value
 // if it exists
 res_t insert(Map* map, char* key, void* value); 

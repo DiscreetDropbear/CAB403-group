@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "queue.h"
+#include "../include/queue.h"
 
 void init_queue(Queue * queue){
     assert(queue != NULL);

@@ -1,6 +1,15 @@
-#include "types.h"
 #ifndef MACROS_H
 #define MACROS_H
+#include "types.h"
+#include "unistd.h"
+
+// sleep macro where duration is milliseconds 
+// we will use this macro to scale the actual sleep time up
+// for testing and debugging purposes
+#define SLEEP(duration) usleep(duration * 1000 * SLEEP_SCALE) 
+// This will help to make the sleep times longer for testing without
+// having to change any of the sleep code within any of the code
+#define SLEEP_SCALE 1 
 
 // TODO: make sure macro definitions work for struct attribute accesses
 // macros to access the lpr(license plate reader), boomgate and sign for the entrance

@@ -1,17 +1,26 @@
 CC=gcc
 CFLAGS=-lpthread -lrt
+MANAGER_LIBS=libs/map.o libs/queue.o libs/leveldata.o libs/utils.o libs/billing.o
+SIMULATOR_LIBS=libs/queue.o libs/map.o
+TEST_LIBS=libs/map.o libs/queue.o 
 
 %.o: libs/%.c %.c
 	$(CC) -g -c -o $@ $< $(CFLAGS)
 
-simulator: simulator.o libs/queue.o
-	$(CC) -g -o simulator.out simulator.o libs/queue.o $(CFLAGS)
+simulator: simulator.o $(SIMULATOR_LIBS) 
+	$(CC) -g -o simulator simulator.o $(SIMULATOR_LIBS) $(CFLAGS)
+	rm *.o
+	rm libs/*.o
 
-manager: manager.o
-	$(CC) -g -o manager.out manager.o $(CFLAGS)
+manager: manager.o $(MANAGER_LIBS) 
+	$(CC) -g -o manager manager.o $(MANAGER_LIBS) $(CFLAGS)
+	rm *.o
+	rm libs/*.o
 
-tests: tests.o libs/map.o libs/queue.o 
-	$(CC) -g -o tests.out tests.c libs/map.o libs/queue.o $(CFLAGS)
+tests: tests.o $(TEST_LIBS) 
+	$(CC) -g -o tests tests.c $(TEST_LIBS) $(CFLAGS)
+	rm *.o
+	rm libs/*.o
 
 .PHONY: clean
 

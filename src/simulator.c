@@ -230,11 +230,11 @@ int main() {
     /// cleanup the queues used won't bother locking as all other threads
     /// are now dead
     for(int i = 0; i < EXITS; i++){
-        free_queue(&exit_queue[i].q);
+        free_queue_nodes(&exit_queues[i].q);
     }
 
     for(int i = 0; i < ENTRANCES; i++){
-        free_queue(&entrance_queue[i].q);
+        free_queue_nodes(&entrance_queues[i].q);
     }
 
     /// close shared memory
