@@ -1,5 +1,16 @@
-int main()
+int get_regos(char * filename, char** * regos)
 {
+    //have to find number of lines in file
+    size_t n; 
+
+    char ** values = malloc(sizeof(char*) * n); 
+    assert(values != NULL);
+
+    for(int i = 0; i<n; i++){
+        values[i] = malloc(sizeof(char) * 7);
+        assert(values[i] != NULL); 
+    }
+
     int i,j;
     int value[100][7];
     FILE *archivo;
@@ -13,9 +24,6 @@ int main()
         printf("%c %c %c %c %c %c\n", value[i][0], value[i][1], value[i][2], value[i][3], value[i][4], value[i][5]);
         i++;
     }
-
-    for(j = 0; j < i; j++)
-        printf("%c %c %c %c %c %c\n", value[j][0], value[j][1], value[j][2], value[j][3], value[j][4], value[j][5]);
 
     fclose(archivo);
     return 0;
