@@ -1,5 +1,4 @@
-int get_regos(char * filename, char** * regos)
-{
+int get_regos(char * filename, char** * regos){
     //have to find number of lines in file
     size_t n; 
 

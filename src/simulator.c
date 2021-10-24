@@ -143,6 +143,7 @@ int select_valid_rego(Map * outside, char** rego){
 char * get_next_rego(Map * inside, Map * outside){
     char * rego;
 
+    //Rand mutex
     int generate = (rand() % 2) != 0; //will provide 1 or 0
 
     if(generate == 1){
@@ -162,61 +163,13 @@ char * get_next_rego(Map * inside, Map * outside){
 }
 
 
-
-int get_regos( char** * regos)
-{
-    //have to find number of lines in file
-    FILE *fp;
-    size_t n = 0; 
-    char c;  // To store a character read from file
-  
-    // Open the file
-    fp = fopen("plates.txt", "r");
-  
-    // Check if file exists
-    if (fp == NULL)
-    {
-        printf("Could not open file");
-        return 0;
-    }
-  
-    // Extract characters from file and store in character c
-    for (c = getc(fp); c != EOF; c = getc(fp)){
-        if (c == '\n') {
-            n = n + 1;
-        }
-    }
-
-    fclose(fp);
-  
-    int a = 0;
-    char ** values = malloc(sizeof(char*) * n); 
-    assert(values != NULL);
-
-    for(int i = 0; i<n; i++){
-        values[i] = malloc(sizeof(char) * 7);
-        assert(values[i] != NULL); 
-    }
-
-    FILE *archivo = fopen("plates.txt","r");    
-
-    if (archivo == NULL){
-        exit(1);
-    }
-
-    while (feof(archivo) == 0)
-    {
-        fscanf( archivo, "%c%c%c%c%c%c\n", &values[a][0],&values[a][1],&values[a][2],&values[a][3],&values[a][4],&values[a][5]);
-        a++;
-    }
-
-    fclose(archivo);
-    return 0;
-}
-
-
 void * spawner(void * arg){
-    
+
+    int ST = rand() % 100 + 1; //use rand to generate number between 1 and 100 inclusive to determine spawn rate
+    wait(ST);
+
+    get_next_rego( );
+
 }
 
 void * entrance_queue(void * arg){
@@ -245,8 +198,7 @@ int main() {
     }
 
     char ** values;
-
-    get_regos("plates.txt", &values)
+    get_regos("plates.txt", &values);
 
     /// resize shared memory
     ftruncate(shm_fd, 2920);
