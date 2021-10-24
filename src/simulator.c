@@ -7,9 +7,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "libs/types.h"
-#include "libs/queue.h"
-#include "libs/macros.h"
+#include "include/types.h"
+#include "include/queue.h"
+#include "include/macros.h"
+#include "include/map.h"
+
 
 // max number of entrances, exits and levels is 5, always just have 5 elements as 5 ints is small
 int thread_number[5] = {1, 2, 3, 4, 5};
@@ -119,7 +121,7 @@ int generate_rego(char ** rego){
 }
 
 
-int select_valid_rego(map * outside, char** rego){
+int select_valid_rego(Map * outside, char** rego){
 
     int num = rand() %(100000 + 1);
     pair_t pair;
