@@ -97,39 +97,44 @@ void init_shared_queues(){
 }
 
 
-char * generate_rego(){ 
+int generate_rego(char ** rego){ 
 
-    int letter[3];
-    int number[3];
+    *rego = malloc(7);
+    if(*rego == NULL){
+        return -1; 
+    }
 
- 	int l;
-	for (l = 0; l < 3; l++) {
-        letter[l] = rand() %(90 - 65 + 1) + 65;
+	for (int l = 0; l < 3; l++) {
+        (*rego)[l] = rand() %(90 - 65 + 1) + 65;
     }
 
     // Generate three random numbers
- 	int i;
-	for (i = 0; i < 3; i++) {
-        number[i] = rand() %(57 - 48 + 1) + 48;
+ 	for (int i = 3; i < 6; i++) {
+        (*rego)[i] = rand() %(57 - 48 + 1) + 48;
     }
 
-    char *rego[6] = {number[0],number[1], number[2], letter[0],letter[1], letter[2]};
-
+    (*rego)[6] = '\0';
+    
+    return 0;
 }
 
 
-void * select_valid_rego(map * outside){
+int select_valid_rego(map * outside, char** rego){
 
-    while(1){ 
-        int num = rand() %(99 + 1);
-        char *rego[6] = {value[num][0],value[num][1],,value[num][2]value[num][3],value[num][4],value[num][5]}; 
-        //random num corresponding to row of matrix of allowed rego's
+    int num = rand() %(100000 + 1);
+    pair_t pair;
 
-        //if ( car isnt already outside ){
-            //break;
-        //}
-
+    int ret = get_nth_item(outside, num, &pair);
+    
+    // failure
+    if(ret != 0){
+        return ret; 
     }
+    
+    *rego = pair.key;
+
+    // success
+    return 0;
 }
 
 
@@ -138,12 +143,14 @@ char * get_next_rego(map * inside, map * outside){
 
     int generate = (rand() % 2) != 0; //will provide 1 or 0
 
-    if(generate = 1){
+    if(generate == 1){
         while(1){
-            rego = generate_rego(); 
+            rego = generate_rego( rego );
+            // check rego inside 
+                // if it is   
         }
     }else{
-        rego = select_valid_rego(outside);
+        rego = select_valid_rego((outside, rego);
     }
 }
 
@@ -176,6 +183,10 @@ int main() {
         return -1;
     }
 
+    char ** values;
+    
+    get_regos_from_file("plates.txt", &values)
+
     /// resize shared memory
     ftruncate(shm_fd, 2920);
 
@@ -189,7 +200,7 @@ int main() {
     pthread_t * exit_threads = malloc(sizeof(pthread_t) * EXITS);
     pthread_t * spawner_thread = malloc(sizeof(pthread_t)); 
 
-    // ranf for number plate generator
+    // rand for number plate generator
     srand(time(0));
 
     /// start car entry threads (one per entry)
