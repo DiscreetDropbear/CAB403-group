@@ -148,14 +148,20 @@ char * get_next_rego(Map * inside, Map * outside){
     if(generate == 1){
         while(1){
             rego = generate_rego( rego );
+
+            //check rego inside 
+            //if(rego)
             
-            //if (rego)
-            // check rego inside 
+            
+            //if rego already an existing rego
+            //if(rego != valid rego)
         }
     }else{
         rego = select_valid_rego(( outside, rego);
     }
 }
+
+
 
 int get_regos( char** * regos)
 {
@@ -165,7 +171,7 @@ int get_regos( char** * regos)
     char c;  // To store a character read from file
   
     // Open the file
-    fp = fopen("plate.txt", "r");
+    fp = fopen("plates.txt", "r");
   
     // Check if file exists
     if (fp == NULL)
@@ -175,20 +181,24 @@ int get_regos( char** * regos)
     }
   
     // Extract characters from file and store in character c
-    for (c = getc(fp); c != EOF; c = getc(fp))
-        if (c == '\n') 
+    for (c = getc(fp); c != EOF; c = getc(fp)){
+        if (c == '\n') {
             n = n + 1;
-  
+        }
+    }
+
     fclose(fp);
   
     int a = 0;
     char ** values = malloc(sizeof(char*) * n); 
+    assert(values != NULL);
 
     for(int i = 0; i<n; i++){
         values[i] = malloc(sizeof(char) * 7);
+        assert(values[i] != NULL); 
     }
 
-    FILE *archivo = fopen("plate.txt","r");    
+    FILE *archivo = fopen("plates.txt","r");    
 
     if (archivo == NULL){
         exit(1);
