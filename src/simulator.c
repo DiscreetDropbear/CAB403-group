@@ -157,36 +157,53 @@ char * get_next_rego(Map * inside, Map * outside){
     }
 }
 
-int get_regos(char * filename, char** * regos)
+int get_regos( char** * regos)
 {
     //have to find number of lines in file
-    size_t n; 
-
+    FILE *fp;
+    size_t n = 0; 
+    char c;  // To store a character read from file
+  
+    // Open the file
+    fp = fopen("plate.txt", "r");
+  
+    // Check if file exists
+    if (fp == NULL)
+    {
+        printf("Could not open file");
+        return 0;
+    }
+  
+    // Extract characters from file and store in character c
+    for (c = getc(fp); c != EOF; c = getc(fp))
+        if (c == '\n') 
+            n = n + 1;
+  
+    fclose(fp);
+  
+    int a = 0;
     char ** values = malloc(sizeof(char*) * n); 
-    assert(values != NULL);
 
     for(int i = 0; i<n; i++){
         values[i] = malloc(sizeof(char) * 7);
-        assert(values[i] != NULL); 
     }
 
-    int i,j;
-    int value[100][7];
-    FILE *archivo;
-    archivo = fopen("plate.txt","r");
-    if (archivo == NULL)
+    FILE *archivo = fopen("plate.txt","r");    
+
+    if (archivo == NULL){
         exit(1);
-    i=0;
+    }
+
     while (feof(archivo) == 0)
     {
-        fscanf( archivo, "%c %c %c %c %c %c\n", &value[i][0],&value[i][1],&value[i][2],&value[i][3],&value[i][4],&value[i][5]);
-        printf("%c %c %c %c %c %c\n", value[i][0], value[i][1], value[i][2], value[i][3], value[i][4], value[i][5]);
-        i++;
+        fscanf( archivo, "%c%c%c%c%c%c\n", &values[a][0],&values[a][1],&values[a][2],&values[a][3],&values[a][4],&values[a][5]);
+        a++;
     }
 
     fclose(archivo);
     return 0;
 }
+
 
 void * spawner(void * arg){
     
