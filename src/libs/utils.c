@@ -101,6 +101,10 @@ int time_diff(struct timespec before, unsigned long * milli){
     return 0;
 }
 
+
+// function to retrive number of lines in plates txt file
+// will store the number of lines in variable n
+// 
 int get_regos( char** * regos){
     //have to find number of lines in file
     FILE *fp;
@@ -125,7 +129,6 @@ int get_regos( char** * regos){
 
     fclose(fp);
   
-    int a = 0;
     char ** values = malloc(sizeof(char*) * n); 
     assert(values != NULL);
 
@@ -140,7 +143,13 @@ int get_regos( char** * regos){
         exit(1);
     }
 
-    for (feof(archivo) == 0){
+    // for(int a = 0; a<n; a++){
+    //     values[n] = fscanf(archivo, "%c%c%c%c%c%c\n", &values[a][0],&values[a][1],&values[a][2],&values[a][3],&values[a][4],&values[a][5]);
+    //     assert(values[n]!= NULL); 
+    // }
+
+    int a = 0;
+    while (feof(archivo) == 0){
         fscanf( archivo, "%c%c%c%c%c%c\n", &values[a][0],&values[a][1],&values[a][2],&values[a][3],&values[a][4],&values[a][5]);
         a++;
     }

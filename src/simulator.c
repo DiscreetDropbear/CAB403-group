@@ -107,12 +107,12 @@ int generate_rego(char ** rego){
     }
 
 	for (int l = 0; l < 3; l++) {
-        (*rego)[l] = rand() %(90 - 65 + 1) + 65;
+        (*rego)[l] = rand() %(90 - 65 + 1) + 65; //char range for letter 
     }
 
     // Generate three random numbers
  	for (int i = 3; i < 6; i++) {
-        (*rego)[i] = rand() %(57 - 48 + 1) + 48;
+        (*rego)[i] = rand() %(57 - 48 + 1) + 48; //char range for numbers
     }
 
     (*rego)[6] = '\0';
@@ -151,12 +151,16 @@ char * get_next_rego(Map * inside, Map * outside){
             rego = generate_rego( rego );
 
             //check rego inside 
-            //if(rego)
+            if(rego != inside){
+                return rego;
+                break;
+            }
             
-            
-            //if rego already an existing rego
-            //if(rego != valid rego)
-        }
+            //if rego isn't already an existing rego from the list            
+            if(rego != valid_rego){
+                return rego;
+                break;
+            }
     }else{
         rego = select_valid_rego(( outside, rego);
     }
@@ -168,7 +172,9 @@ void * spawner(void * arg){
     int ST = rand() % 100 + 1; //use rand to generate number between 1 and 100 inclusive to determine spawn rate
     wait(ST);
 
-    get_next_rego( );
+    //get_next_rego(  );
+
+    // send next rego to the entrance queue?
 
 }
 
