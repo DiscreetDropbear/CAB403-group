@@ -127,7 +127,6 @@ res_t search(Map* map, char* key){
 res_t insert(Map* map, char* key, void* value){
     assert(map->size != 0);
     assert(key != NULL);
-    assert(value != NULL);
 
     // check if the map needs to grow
     if(((double)map->items/(double)map->size) >= GROW_DENSITY){
