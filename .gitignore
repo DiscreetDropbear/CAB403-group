@@ -1,3 +1,10 @@
+manager
+manager_t
+simulator
+simulator_t
+firealarm
+firealarm_t
+
 # Prerequisites
 *.d
 
