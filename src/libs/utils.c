@@ -71,8 +71,6 @@ void init_shared_mem(volatile void * shm){
     }
 }
 
-
-
 // TODO: take into account the sleep modifier here so in testing
 // this will still work
 int time_diff(struct timespec before, unsigned long * milli){
@@ -97,6 +95,5 @@ int time_diff(struct timespec before, unsigned long * milli){
     }
     
     *milli = diff_milli;
-
     return 0;
 }
