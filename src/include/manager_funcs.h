@@ -7,7 +7,6 @@ typedef struct entrance_args{
     Map* allow_list;
     pthread_mutex_t* billing_m;
     billing_t* billing;
-    // level_m protexts billing and free_spots
     pthread_mutex_t* level_m;
     level_data_t* level_d;
     size_t* free_spots; 
@@ -25,14 +24,26 @@ typedef struct exit_args{
     volatile void * shared_mem;
     pthread_mutex_t* billing_m;
     billing_t* billing;
-    // level_m protects billing and free_spots
+    FILE* billing_fp;
+    unsigned int* total_bill; // current bill for the whole car park in cents
     pthread_mutex_t* level_m;
     level_data_t* level_d;
     size_t* free_spots; 
 } exit_args_t;
 
-void* entrance_thread(void *);
-void* exit_thr(void*);
-void* level_thr(void*);
+typedef struct display_args{
+    int thread_num;
+    volatile void * shared_mem;
+    pthread_mutex_t* billing_m;
+    unsigned int* bill; // current bill for the whole car park in cents
+    // level_m protects billing and free_spots
+    pthread_mutex_t* level_m;
+    level_data_t* level_d;
+    size_t* free_spots; 
+} display_args_t;
 
+void* entrance_thread(void *);
+void* exit_thread(void*);
+void* level_thread(void*);
+void* display_thread(void*);
 #endif
