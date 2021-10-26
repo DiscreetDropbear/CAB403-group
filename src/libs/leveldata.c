@@ -9,10 +9,10 @@
 level_t* init_level(size_t level_cap);
 void free_level(level_t* level);
 
-void init_level_data(level_data_t* ld, size_t num_levels, size_t level_cap){
-    ld->num_levels = num_levels;
-    for(int i = 0; i < num_levels; i++){
-        ld->levels[i] = init_level(level_cap); // defined 
+void init_level_data(level_data_t* ld){
+    ld->num_levels = LEVELS;
+    for(int i = 0; i < LEVELS; i++){
+        ld->levels[i] = init_level(LEVEL_CAPACITY); // defined 
     }
 }
 
@@ -39,13 +39,13 @@ size_t get_available_level(level_data_t* ld){
 // or false otherwise
 // rego is copied and then inserted into the map so the callers copy will still be
 // valid and they must free it
-bool insert_in_level(level_data_t* ld, size_t l_num, char* rego, bool val){
+bool insert_in_level(level_data_t* ld, size_t l_num, char* rego){
     assert(l_num <= ld->num_levels);
     if(ld->levels[l_num]->free_parks > 0){
         char* regoc = malloc(7);
         memcpy((void*)regoc, rego, 7);
         // just using the void* as a bool value instead of a pointer
-        res_t res = insert(&ld->levels[l_num-1]->cars, regoc, (void*)val);
+        res_t res = insert(&ld->levels[l_num-1]->cars, regoc, NULL);
         // there shouldn't be any case where we are inserting a rego into a level and 
         // there is already the same rego there
         assert(res.exists == false); 
@@ -79,6 +79,12 @@ res_t remove_from_level(level_data_t* ld, size_t l_num, char* rego){
     }
 
     return res;
+}
+
+res_t remove_from_all_levels(level_data_t* ld, char* rego){
+    for(int i = 0; i<ld->num_levels; i++){
+        remove_from_level(ld, i, rego);
+    }
 }
 
 // returns true if the given rego exists in the level referred to by l_num 

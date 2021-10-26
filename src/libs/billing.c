@@ -24,13 +24,13 @@ void insert_rego(billing_t* billing, char * rego){
 
 // returns the number of milliseconds the car was inside the car park 
 // removing the rego from the map
-int remove_rego(billing_t* billing, char * rego, unsigned long* timespent){
+int remove_rego(billing_t* billing, char * rego, unsigned long* duration_ms){
     assert(billing != NULL);
     res_t res = remove_key(&billing->map, rego);
 
     if(res.exists == true){
         // calculate the time spent in the car park
-        int r = time_diff(*(struct timespec*)res.value, timespent);        
+        int r = time_diff(*(struct timespec*)res.value, duration_ms);        
         if(r != 0){
             return r;
         }
