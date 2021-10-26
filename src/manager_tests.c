@@ -52,7 +52,7 @@ int main(){
     // setup the billing and billing mutex
     init_billing(&billing);
     pthread_mutex_init(&billing_m, NULL);
-    init_level_data(&level_d, LEVELS, LEVEL_CAPACITY);
+    init_level_data(&level_d);
     pthread_mutex_init(&level_m, NULL);
     
     entrance_args_t entrance_args;
@@ -100,7 +100,7 @@ void setup_entrance_vars(entrance_args_t entrance_args){
     init_map(entrance_args.allow_list, 0);
     // setup the billing and billing mutex
     init_billing(entrance_args.billing);
-    init_level_data(entrance_args.level_d, LEVELS, LEVEL_CAPACITY);
+    init_level_data(entrance_args.level_d);
 }
 
 void entrance_tests(entrance_args_t entrance_args){
