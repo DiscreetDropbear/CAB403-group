@@ -78,7 +78,9 @@ int main() {
     pthread_t entrance_threads[ENTRANCES];
     pthread_t exit_threads[EXITS];
     pthread_t generator_thread; 
+    pthread_t temp_thread;
 
+    temp_args_t temp_args;
     generator_args_t gen_args;
     entr_args_t entr_args[ENTRANCES];
     exit_args_t exit_args[EXITS];
@@ -140,7 +142,11 @@ int main() {
     gen_args.maps = &maps;
     gen_args.rand_m = &rand_m;
     pthread_create(&generator_thread, NULL, &generator, &gen_args);         
-    
+
+    // start temperature changing thread
+    temp_args.shm = shm;
+    temp_args.rand_m = &rand_m;
+    pthread_create(&temp_thread, NULL, &temp_setter, &temp_args);         
     //
     /// wait for all threads to exit
     //

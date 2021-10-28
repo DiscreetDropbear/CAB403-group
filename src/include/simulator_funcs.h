@@ -45,12 +45,17 @@ typedef struct exit_args{
 
 typedef struct car_args{
     int level;
-    volatile void * shm;
+    volatile void* shm;
     char * rego;
     shared_queue_t* exit_queues;
     pthread_mutex_t* rand_m;
     pthread_mutex_t* outer_level_m;
 } car_args_t;
+
+typedef struct temp_args{
+    volatile void* shm;
+    pthread_mutex_t* rand_m;
+} temp_args_t;
 
 void * generator(void *);
 void * entrance_queue(void *);

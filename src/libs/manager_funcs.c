@@ -417,6 +417,7 @@ void* display_thread(void* _args){
     // set up level variables
     char ** l_lpr = calloc(LEVELS, sizeof(char*));    
     short level_temps[LEVELS];
+    int level_alarms[LEVELS];
     for(int i = 0; i<LEVELS; i++){
         l_lpr[i] = calloc(7, sizeof(char)); 
     }
@@ -458,6 +459,8 @@ void* display_thread(void* _args){
             // temperatures
             level_temps[i] = *LEVEL_TEMP(i+1, shm);
 
+            level_alarms[i] = *LEVEL_ALARM(i+1, shm);
+
             pthread_mutex_lock(level_m);
             level_caps[i] = LEVEL_CAPACITY - levels_free_parks(level_d, i+1);
             pthread_mutex_unlock(level_m);
@@ -494,9 +497,10 @@ void* display_thread(void* _args){
         printf("\n");
         
         // print level data
-        printf("level number\tlpr\ttemp\tcars inside\n");
+        printf("level number\tspots\tlpr\ttemp\talarm\n");
         for(int i = 0; i<LEVELS; i++){
-            printf("%d           \t%s\t%d\t%d/%d\n", i+1, l_lpr[i], level_temps[i], level_caps[i], LEVEL_CAPACITY); 
+            printf("%d           \t%d/%d\t%s\t%d\t%s\n", i+1,level_caps[i], LEVEL_CAPACITY, l_lpr[i], level_temps[i], level_alarms[i] ? "Off":"On"); 
+
         }
         printf("\n");
 

@@ -109,7 +109,7 @@ void * generator(void* _args){
         pthread_mutex_unlock(rand_m);
 
         //SLEEP(1);
-        usleep(10*1000);
+        usleep(st*1000);
 
         //fprintf(stderr, "\t\tgetting maps lock\n");
         pthread_mutex_lock(&maps->m);
@@ -397,4 +397,78 @@ void * car(void * _args){
 
     // free our arguments
     free(args);
+}
+
+// TODO: make it more likely to increase given that its decreased
+void * temp_setter(void * _args){
+    temp_args_t * args = _args;
+    volatile void * shm = args->shm;
+    pthread_mutex_t* rand_m = args->rand_m;
+    int sleep_time = 1;
+    
+    // 0 is decrease
+    // 1 is increase
+    int scale[LEVELS] = {0, 0, 0, 0, 0};
+
+    int change = 0;
+    short change_val = 0;
+  
+    // lets just say the valid range is between 10 and 40 
+    pthread_mutex_lock(rand_m);
+    short start = (rand() % 31 + 10); 
+    pthread_mutex_unlock(rand_m);
+    
+    // set the start temperatures
+    for(int i = 1; i<=LEVELS; i++){
+        *LEVEL_TEMP(i, shm) = start; 
+    }
+
+    while(1){
+        SLEEP(sleep_time); 
+        // increase, decrease or keep the temp the same on
+        // each level
+        for(int i=1; i<=LEVELS; i++){
+            pthread_mutex_lock(rand_m); 
+            sleep_time = (rand() % 5) +1;
+            change = rand() % 100;
+            change_val = rand() % 100; 
+            pthread_mutex_unlock(rand_m);
+            
+            if(change <= 80){
+                continue;
+            }
+
+            change_val = 1;
+            // 51% of the time
+            if(change_val <= 50){
+                change_val = 1;
+            }
+            // 25% of the time
+            else if(change_val > 50 && change_val <= 75){
+                change_val = 2;
+            }
+            // 12% of the time
+            else if(change_val > 75 && change_val <= 87){
+                change_val = 3; 
+            }
+            // 6% of the time
+            else if(change_val > 87 && change_val <= 93){
+                change_val = 4; 
+            }
+
+            int middle = 10;
+            middle += scale[i-1];
+            // 12 % chance of decrease
+            if(change > 80 && change <= 80+middle ){
+                scale[i-1] -= change_val; 
+                *LEVEL_TEMP(i,shm) -= change_val;   
+            }
+            // 12 % chance of  increase
+            else{
+
+                scale[i-1] += change_val; 
+                *LEVEL_TEMP(i,shm) += change_val;   
+            }
+        }
+    }
 }
