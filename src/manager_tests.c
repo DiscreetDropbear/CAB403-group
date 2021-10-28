@@ -61,7 +61,7 @@ int main(){
 
     // 
     entrance_args.thread_num = 1; 
-    entrance_args.shared_mem = shm; 
+    entrance_args.shm = shm; 
     entrance_args.allow_list = &allow_list; 
     entrance_args.billing_m = &billing_m;
     entrance_args.billing = &billing;
@@ -70,7 +70,7 @@ int main(){
     entrance_args.free_spots = &free_spots;
 
     exit_args.thread_num = 1; 
-    exit_args.shared_mem = shm; 
+    exit_args.shm = shm; 
     exit_args.billing_m = &billing_m;
     exit_args.billing = &billing;
     exit_args.level_m = &level_m;
@@ -78,7 +78,7 @@ int main(){
     exit_args.free_spots = &free_spots;
 
     level_args.thread_num = 1;
-    level_args.shared_mem = shm;
+    level_args.shm = shm;
     level_args.level_m = &level_m;
     level_args.level_d = &level_d;
 
@@ -105,7 +105,7 @@ void setup_entrance_vars(entrance_args_t entrance_args){
 
 void entrance_tests(entrance_args_t entrance_args){
     pthread_t t;
-    volatile void* shm = entrance_args.shared_mem;
+    volatile void* shm = entrance_args.shm;
 
     // lock LPR just before launching thread so we can start the thread then
     // wait on the signal
@@ -138,7 +138,7 @@ void test_one(entrance_args_t entrance_args){
     char* rego = malloc(sizeof(char)*7);
     memcpy(rego, "123ABC\0", 7);
 
-    volatile void* shm = entrance_args.shared_mem;
+    volatile void* shm = entrance_args.shm;
 
     // insert into allow list, note the entrance thread should be waiting on the lock at the moment
     res_t res = insert(entrance_args.allow_list, rego, (void*)true); 
