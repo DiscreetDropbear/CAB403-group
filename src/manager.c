@@ -17,7 +17,6 @@
 #include "include/utils.h"
 #include "include/manager_funcs.h"
 
-//TODO: setup allow_list
 Map allow_list;
 
 // level data and free_spots are both protected by level_m
@@ -34,6 +33,30 @@ billing_t billing;
 
 FILE* billing_fp;  
 unsigned int total_bill = 0;
+
+void init_allow_list(){
+    char ** regos;
+    int num_regos;
+
+    if(load_regos(&regos, &num_regos) != 0){
+        fprintf(stderr, "error retreiving regos from plates.txt"); 
+        exit(-1);
+    }
+
+    init_map(&allow_list, 2);
+
+    for(int i=0; i<num_regos; i++){
+        insert(&allow_list, regos[i], NULL);
+    }
+
+
+
+    // free the memory for regos
+    for(int i = 0; i< num_regos; i++){
+        free(regos[i]);
+    }
+    free(regos);
+}
 
 int main(){
      
@@ -52,25 +75,31 @@ int main(){
         fprintf(stderr, "Error opening billing.txt(errno: %d)", errno);
     }
 
+    init_allow_list();
+
     pthread_mutex_init(&level_m, NULL);
     init_level_data(&level_d);
 
     init_billing(&billing);
+    // TODO: REMOVE THE NEXT LINE ITS JUST FOR TESTING
+    init_map(&billing.existed, 0);
     pthread_mutex_init(&billing_m, NULL);
  
     pthread_t * entrance_threads = malloc(sizeof(pthread_t) * ENTRANCES);
     pthread_t * exit_threads = malloc(sizeof(pthread_t) * EXITS);
     pthread_t * level_threads = malloc(sizeof(pthread_t) * LEVELS); 
+    pthread_t dis_thread;
 
     entrance_args_t entrance_args[5];
     level_args_t level_args[5];
     exit_args_t exit_args[5];
+    display_args_t dis_args;
 
     // start exit threads
     for(int i = 0; i < EXITS; i++){
 
         exit_args[i].thread_num = i+1; 
-        exit_args[i].shared_mem = shm; 
+        exit_args[i].shm = shm; 
         exit_args[i].billing_m = &billing_m;
         exit_args[i].billing = &billing;
         exit_args[i].billing_fp = billing_fp;
@@ -84,7 +113,7 @@ int main(){
     // start level threads
     for(int i = 0; i < LEVELS; i++){
         level_args[i].thread_num = i+1;
-        level_args[i].shared_mem = shm;
+        level_args[i].shm = shm;
         level_args[i].level_m = &level_m;
         level_args[i].level_d = &level_d;
         pthread_create(exit_threads+i, NULL, &level_thread, &level_args[i]);         
@@ -94,7 +123,7 @@ int main(){
     for(int i = 0; i < ENTRANCES; i++){
 
         entrance_args[i].thread_num = i+1; 
-        entrance_args[i].shared_mem = shm; 
+        entrance_args[i].shm = shm; 
         entrance_args[i].allow_list = &allow_list; 
         entrance_args[i].billing_m = &billing_m;
         entrance_args[i].billing = &billing;
@@ -103,6 +132,15 @@ int main(){
         entrance_args[i].free_spots = &free_spots;
         pthread_create(entrance_threads+i, NULL, &entrance_thread, &entrance_args[i]);         
     }   
+
+    // start the display thread
+    dis_args.shm = shm; 
+    dis_args.billing_m = &billing_m;
+    dis_args.bill =  &total_bill;
+    dis_args.level_m = &level_m;
+    dis_args.level_d = &level_d;
+    dis_args.free_spots = &free_spots;
+    pthread_create(&dis_thread, NULL, &display_thread, &dis_args);         
 
     /// wait for all threads to exit
     void* retval;
@@ -115,8 +153,8 @@ int main(){
     for(int i = 0; i < EXITS; i++){
         pthread_join(*(exit_threads+i), &retval);  
     }
+    pthread_join(dis_thread, &retval);
 
     //TODO: close shared memory
-    
     return 0;
 }

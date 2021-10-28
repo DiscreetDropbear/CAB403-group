@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <assert.h>
@@ -16,6 +18,7 @@ void init_shared_mem(volatile void * shm){
     (void) pthread_mutexattr_setpshared(&pmut_attr,
         PTHREAD_PROCESS_SHARED);
     (void) pthread_condattr_init(&pcond_attr);
+    (void) pthread_condattr_setclock(&pcond_attr, CLOCK_MONOTONIC);
     (void) pthread_condattr_setpshared(&pcond_attr,
         PTHREAD_PROCESS_SHARED);
     /// ENTRANCES
@@ -27,6 +30,7 @@ void init_shared_mem(volatile void * shm){
 
         // setup condition var
         pthread_cond_init(&ENTRANCE_LPR(i, shm)->c, &pcond_attr);
+        memcpy(&ENTRANCE_LPR(i, shm)->rego, "------", 6);
         
         /// BOOM
         // setup mutex
@@ -51,6 +55,7 @@ void init_shared_mem(volatile void * shm){
         pthread_mutex_init(&EXIT_LPR(i, shm)->m, &pmut_attr);
         // setup condition var
         pthread_cond_init(&EXIT_LPR(i, shm)->c, &pcond_attr);
+        memcpy(&EXIT_LPR(i, shm)->rego, "------", 6);
         
         /// BOOM
         // setup mutex
@@ -68,6 +73,10 @@ void init_shared_mem(volatile void * shm){
         pthread_mutex_init(&LEVEL_LPR(i, shm)->m, &pmut_attr);
         // setup condition var
         pthread_cond_init(&LEVEL_LPR(i, shm)->c, &pcond_attr);
+        memcpy(&LEVEL_LPR(i, shm)->rego, "------", 6);
+
+        *LEVEL_ALARM(i, shm) = 0;
+        *LEVEL_TEMP(i, shm) = 0;
     }
 }
 
@@ -102,7 +111,7 @@ int time_diff(struct timespec before, unsigned long * milli){
 // function to retrive number of lines in plates txt file
 // will store the number of lines in variable n
 // 
-int get_regos( char** * regos){
+int load_regos( char*** regos, int* num_regos){
     //have to find number of lines in file
     FILE *fp;
     size_t n = 0; 
@@ -117,40 +126,42 @@ int get_regos( char** * regos){
         return 0;
     }
   
-    // Extract characters from file and store in character c
+    // find the number of lines in the file
     for (c = getc(fp); c != EOF; c = getc(fp)){
         if (c == '\n') {
             n = n + 1;
         }
     }
-
-    fclose(fp);
-  
+    // set the cursor back to the begining of the file
+    fseek(fp, 0, SEEK_SET);
+    
+    // set the external value of num_regos so
+    // the caller knows how many regos there are
+    *num_regos = n;
+     
+    // allocate the required memory to read in the regos
     char ** values = malloc(sizeof(char*) * n); 
     assert(values != NULL);
 
+    // allocate the required memory for each of the regos
     for(int i = 0; i<n; i++){
-        values[i] = malloc(sizeof(char) * 7);
+        values[i] = calloc(7, sizeof(char));
         assert(values[i] != NULL); 
     }
 
-    FILE *archivo = fopen("plates.txt","r");    
-
-    if (archivo == NULL){
-        exit(1);
+    // read the rego for each line 
+    for(int a = 0; a<n; a++){
+        int ret = fscanf(fp, "%c%c%c%c%c%c\n", &values[a][0],&values[a][1],&values[a][2],&values[a][3],&values[a][4],&values[a][5]);
+        if(ret != 6){
+            fprintf(stderr, "there was an error reading the plates.txt file");
+            exit(-1);
+        }
     }
 
-    // for(int a = 0; a<n; a++){
-    //     values[n] = fscanf(archivo, "%c%c%c%c%c%c\n", &values[a][0],&values[a][1],&values[a][2],&values[a][3],&values[a][4],&values[a][5]);
-    //     assert(values[n]!= NULL); 
-    // }
+    // set the memory address of the regos to the callers
+    // variable
+    *regos = values;
 
-    int a = 0;
-    while (feof(archivo) == 0){
-        fscanf( archivo, "%c%c%c%c%c%c\n", &values[a][0],&values[a][1],&values[a][2],&values[a][3],&values[a][4],&values[a][5]);
-        a++;
-    }
-
-    fclose(archivo);
+    fclose(fp);
     return 0;
 }

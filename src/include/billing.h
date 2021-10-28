@@ -6,6 +6,7 @@
 #include "map.h"
 
 typedef struct billing{
+    Map existed;
     Map map;
 } billing_t;
 

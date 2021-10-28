@@ -11,6 +11,8 @@ void free_level(level_t* level);
 
 void init_level_data(level_data_t* ld){
     ld->num_levels = LEVELS;
+    ld->levels = calloc(LEVELS, sizeof(level_t*));
+
     for(int i = 0; i < LEVELS; i++){
         ld->levels[i] = init_level(LEVEL_CAPACITY); // defined 
     }
@@ -22,17 +24,26 @@ void free_level_data(level_data_t* ld){
     }
 }
 
-// returns the first available level that has free parks 
+// returns a level that has the most free parks
 size_t get_available_level(level_data_t* ld){
-    for(int i = 0; i < ld->num_levels; i++){
+
+    int largest = ld->levels[0]->free_parks;
+    int index = 0;
+    for(int i = 1; i < ld->num_levels; i++){
         // if there are any available spots  
-        if(ld->levels[i]->free_parks > 0){
-            return i+1;
+        if(ld->levels[i]->free_parks > largest){  
+            largest = ld->levels[i]->free_parks;
+            index = i; 
         }
     }
-    
-    // 0 means here are no avilable parks on any level
-    return 0;
+   
+    if(ld->levels[index]->free_parks == 0){
+        // 0 means here are no avilable parks on any level
+        return 0;
+    }
+    else{
+        return index+1;
+    }
 }
 
 // tries to insert the key:value pair in the given level, returns true if successfull
@@ -41,7 +52,8 @@ size_t get_available_level(level_data_t* ld){
 // valid and they must free it
 bool insert_in_level(level_data_t* ld, size_t l_num, char* rego){
     assert(l_num <= ld->num_levels);
-    if(ld->levels[l_num]->free_parks > 0){
+    if(ld->levels[l_num-1]->free_parks > 0){
+
         char* regoc = malloc(7);
         memcpy((void*)regoc, rego, 7);
         // just using the void* as a bool value instead of a pointer
@@ -83,7 +95,7 @@ res_t remove_from_level(level_data_t* ld, size_t l_num, char* rego){
 
 res_t remove_from_all_levels(level_data_t* ld, char* rego){
     for(int i = 0; i<ld->num_levels; i++){
-        remove_from_level(ld, i, rego);
+        remove_from_level(ld, i+1, rego);
     }
 }
 

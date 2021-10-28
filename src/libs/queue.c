@@ -25,6 +25,7 @@ void free_queue_nodes(Queue * queue){
 void push(Queue *queue, char * rego){
     assert(queue != NULL);
 	Node * node = (Node*)malloc(sizeof(Node));	
+    assert(node != NULL);
 	
 	node->rego = rego;
 	node->next = NULL;
@@ -46,6 +47,7 @@ char * pop(Queue * queue){
     assert(queue != NULL);
 	// there are no nodes in the queue
 	if(queue->head == NULL){
+        assert(queue->tail == NULL);
 		return NULL;
 	}
 	
@@ -68,6 +70,8 @@ char * pop(Queue * queue){
 
 		free(previous_head);
 	}
+
+    assert(rego != NULL);
 
 	return rego;
 }

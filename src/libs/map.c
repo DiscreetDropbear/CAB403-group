@@ -41,6 +41,7 @@ void free_map(Map* map){
     free(map->buckets);
 }
 
+// TODO: check get_nth_item function again make sure there are no bugs
 pair_t get_nth_item(Map* map, size_t n){
     pair_t pair = {key: NULL, value: NULL};
     if(map->items == 0){
@@ -50,7 +51,7 @@ pair_t get_nth_item(Map* map, size_t n){
     // since there may not be n items in the map
     // wrap the number around how many items there are
     // to get a number in the range 0 to (map->items-1)
-    size_t item_n = n % map->items;
+    size_t item_n = n % map->items+1;
 
     // keeps finding the next item untill
     // found_count == item_n
@@ -59,37 +60,37 @@ pair_t get_nth_item(Map* map, size_t n){
     item_t * last = NULL;
 
     for(int i = 0; i < map->size; i++){
-
         current = map->buckets[i]; 
+        item_t * last = NULL;
         // there is a linked list of items in this bucket
         // that we will need to search through 
         while(current != NULL){
-                found_count++;
-                if(found_count == n){
-                    // remove the current item from the list by joining
-                    // the previous item to the next one
-                    if(last->next == NULL){ // means this is the first item in the bucket
-                        map->buckets[i] = current->next; 
-                    } 
-                    else{
-                        last->next = current->next; 
-                    }
 
-                    // put a pair_t on the heap ready for returning
-                    pair.key = current->key;
-                    pair.value = current->value;
-
-                    // free the item_t
-                    current->next = NULL;
-                    free(current);
-
-                    map->items--;
-                    return pair;
+            found_count++;
+            if(found_count == item_n){
+                // remove the current item from the list by joining
+                // the previous item to the next one
+                // Note: this is still valid even if current->next is NULL
+                if(last != NULL){
+                    last->next = current->next; 
                 }
+                else{
+                    map->buckets[i] = current->next;
+                }
+                
+                pair.key = current->key;
+                pair.value = current->value;
+
+                 
+                free(current);
+                map->items--;
+                return pair;
+            }
+
             
             last = current;
             current = current->next;
-        }    
+        }
     }
 
     return pair;
@@ -154,37 +155,14 @@ res_t insert(Map* map, char* key, void* value){
 res_t remove_key(Map* map, char* key){
     assert(map != NULL);  
     assert(key != NULL);
-        
+
     size_t index = get_index(map, key);
     res_t res;
     res.exists = false;
     res.value = NULL;
     
-    // there are no items in the bucket
-    // the key doesn't exist
-    if(map->buckets[index] == NULL){
-        return res;
-    }
-   
-    // the key is the first item in the bucket
-    if(strcmp(map->buckets[index]->key, key) == 0){
-        item_t * tmp = map->buckets[index];
-        map->buckets[index] = tmp->next;
-        
-        // save the value, free the key and then the item
-        res.exists = true;
-        res.value = tmp->value;
-
-        free(tmp->key);
-        free(tmp);
-
-        map->items--;
-        return res;
-    }
-    
-
-    item_t * current = map->buckets[index]->next;
-    item_t * last = map->buckets[index];
+    item_t * current = map->buckets[index];
+    item_t * last = NULL;
 
     // there is a linked list of items in this bucket
     // that we will need to search through 
@@ -194,8 +172,12 @@ res_t remove_key(Map* map, char* key){
             // remove the current item from the list by joining
             // the previous item to the next one
             // Note: this is still valid even if current->next is NULL
-            last->next = current->next; 
-
+            if(last != NULL){
+                last->next = current->next; 
+            }
+            else{
+                map->buckets[index] = current->next;
+            }
 
             res.exists = true;
             res.value = current->value;
@@ -218,24 +200,13 @@ res_t remove_key(Map* map, char* key){
 
 bool exists(Map* map, char* key){
     assert(map != NULL);
+
     size_t index = get_index(map, key);
 
-    // there are no items in the bucket
-    // the key doesn't exist
-    if(map->buckets[index] == NULL){
-        return false;
-    }
-   
-    // the key is the first item in the bucket
-    if(strcmp(map->buckets[index]->key, key) == 0){
-        return true;
-    }
-    
-    item_t * current;
+    item_t * current = map->buckets[index];
     // there is a linked list of items in this bucket
     // that we will need to search through 
-    while((current = map->buckets[index]->next) != NULL){
-
+    while(current  != NULL){
         // found the key 
         if(strcmp(current->key, key) == 0){
             return true;
@@ -270,6 +241,8 @@ size_t djb_hash(char* s)
 // Calculate the offset for the bucket for key in hash table.
 size_t get_index(Map* map, char* key)
 {
+    assert(key != NULL);
+    assert(map->size != 0);
     return djb_hash(key) % map->size;
 }
 

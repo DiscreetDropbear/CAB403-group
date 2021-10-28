@@ -12,6 +12,7 @@ void init_shared_mem(volatile void * shm);
 // milli should not be read 
 int time_diff(struct timespec before, size_t* milli);
 
+int load_regos( char** * regos, int* num_regos);
 
 
 #endif

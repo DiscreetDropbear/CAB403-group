@@ -4,15 +4,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "libs/map.h"
-#include "libs/queue.h"
+#include "include/map.h"
+#include "include/queue.h"
 #include "assert.h"
 
 void run_map_tests();
 void run_queue_tests();
 
 int main(){
-    
     // map tests
     printf("running map tests\n");
     run_map_tests();
@@ -74,6 +73,13 @@ void run_map_tests(){
     insert(&map, keys[5], &values[5]);  
     assert(map.size > 1);
 
+    assert(exists(&map, keys[0]) == true);
+    assert(exists(&map, keys[1]) == true);
+    assert(exists(&map, keys[2]) == true);
+    assert(exists(&map, keys[3]) == true);
+    assert(exists(&map, keys[4]) == true);
+    assert(exists(&map, keys[5]) == true);
+
     // deleting a key thats in the map returns the old value 
     res_t oldv = remove_key(&map, keys[0]);
     assert(oldv.exists = true);
@@ -91,6 +97,26 @@ void run_map_tests(){
     pair_t pair = get_nth_item(&map, 5);
     assert(pair.key != NULL);
     assert(pair.value != NULL);
+
+    // map returns a ret with ret.exists = false when deleting a key that isn't in the map
+    oldv = remove_key(&map, keys[1]);
+    assert(oldv.exists == true); 
+    // map returns a ret with ret.exists = false when deleting a key that isn't in the map
+    oldv = remove_key(&map, keys[2]);
+    assert(oldv.exists == true); 
+    // map returns a ret with ret.exists = false when deleting a key that isn't in the map
+    oldv = remove_key(&map, keys[3]);
+    assert(oldv.exists == true); 
+    // map returns a ret with ret.exists = false when deleting a key that isn't in the map
+    oldv = remove_key(&map, keys[4]);
+    assert(oldv.exists == false); 
+    // map returns a ret with ret.exists = false when deleting a key that isn't in the map
+    oldv = remove_key(&map, keys[5]);
+    assert(oldv.exists == true);
+
+    pair = get_nth_item(&map, 5);
+    assert(pair.key == NULL);
+    assert(pair.value == NULL);
 }
 
 void run_queue_tests() {
@@ -144,6 +170,8 @@ void run_queue_tests() {
 	assert(queue.head->rego == r2);
 	assert(queue.head->next == NULL);
 	assert(queue.head->prev == NULL);
+    
+
     // TODO:6. adding a sequence of nodes and poping them off making sure they are in the correct order
     // TODO:7. test freeing queue nodes an empty queue
     // TODO:8. test freeing queue nodes with one element
