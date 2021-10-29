@@ -28,60 +28,65 @@ int generate_rego(char * rego, pthread_mutex_t* rand_m){
     return 0;
 }
 
-int select_valid_rego(Map * outside, char** rego_o, pthread_mutex_t* rand_m){
+// returns a random rego from the allow list
+void select_valid_rego(char ** regos, int num_regos, char * out, pthread_mutex_t* rand_m){
 
     pthread_mutex_lock(rand_m);
-    int num = rand() %(100000 + 1);
+    int i = rand() % num_regos;
     pthread_mutex_unlock(rand_m);
-    pair_t pair;
-    char * rego;
-
-    pair = get_nth_item(outside, num);
     
-    // failure
-    if(pair.key == NULL){
-        return -1; 
-    }
-    
-    *rego_o = pair.key;
-    // no need to free pair.value as it will be NULL
-
-    // success
-    return 0;
+    memcpy(out, regos[i], 6);
 }
 
 // returns 0 if the rego is from the allow list or 1 if it was generated
-int get_next_rego(maps_t * maps, pthread_mutex_t* rand_m, char ** rego){
-    char * tmp;
-
+int get_next_rego(maps_t * maps, pthread_mutex_t* rand_m, char ** rego, char ** regos, int num_regos, int * count){
     pthread_mutex_lock(rand_m);
     int generate = (rand() % 10); //will provide 1 or 0
     pthread_mutex_unlock(rand_m);
+    bool res;
+
+    int debugin = 0;
+
+    *rego = calloc(7, sizeof(char));
 
     if(1){
-        while(1){
-            pthread_mutex_lock(&maps->m);
-            // a valid rego was successfully received
-            if(select_valid_rego(&maps->outside, &tmp, rand_m) == 0){
-
-                // insert the rego into the inside map
-                res_t res = insert(&maps->inside, tmp, NULL); 
-                *rego = tmp;
-                pthread_mutex_unlock(&maps->m);
-                return 0;
+        do{
+            // get next valid rego  
+            //select_valid_rego(regos, num_regos, *rego, rand_m); 
+            if( *count < num_regos){
+                memcpy(*rego, regos[*count], 6);
             }
+            else{
+                usleep(1000000000);
+            }
+
+            // make sure its not already inside
+            pthread_mutex_lock(&maps->m);
+            res = exists(&maps->inside, *rego); 
             pthread_mutex_unlock(&maps->m);
-        }
+
+            if(res == true){
+                fprintf(stderr, "exists - %d\n", debugin);
+                exit(-1);
+                debugin++;
+            }
+
+        } while(res == true);
+
+        pthread_mutex_lock(&maps->m);
+        insert(&maps->inside, *rego, NULL); 
+        pthread_mutex_unlock(&maps->m);
+        return 0;
     }
         
     // either generate is 1 or there are no more valid regos left
     // so we will generate a random rego
 
+    /*
     // we need to setup the rego's memory
-    tmp = calloc(7, sizeof(char));
     while(1){
 
-        if(generate_rego(tmp, rand_m) == -1){
+        if(generate_rego(*rego, rand_m) == -1){
             fprintf(stderr, "there was an error generating a random rego\n"); 
             exit(-1);
         }
@@ -89,13 +94,14 @@ int get_next_rego(maps_t * maps, pthread_mutex_t* rand_m, char ** rego){
         pthread_mutex_lock(&maps->m);
         // make sure the rego doesn't already exist in the outside map(the allowed cars)
         // or the inside map(the cars that are already inside the carpark)
-        if(!exists(&maps->inside, tmp) && !exists(&maps->outside, tmp)){
+        if(!exists(&maps->inside, tmp)){
             insert(&maps->inside, tmp, NULL);
             *rego = tmp;
             return 1;
         }
         pthread_mutex_unlock(&maps->m);
     }
+    */
 }
 
 void * generator(void* _args){
@@ -104,9 +110,14 @@ void * generator(void* _args){
     shared_queue_t* exit_q = args->exit_queues;
     maps_t* maps = args->maps;
     pthread_mutex_t* rand_m = args->rand_m;
-    char *rego;
+    char ** regos = args->regos;
+    int num_regos = args->num_regos;
+    char* rego;
 
+
+    int start = 0;
     while(1){
+        
         pthread_mutex_lock(rand_m);
         //use rand to generate number between 1 and 100 inclusive to determine spawn rate
         int st = rand() % 100 + 1;         
@@ -116,13 +127,13 @@ void * generator(void* _args){
         //SLEEP(1);
         usleep(st*1000);
 
-        get_next_rego(maps, rand_m, &rego);
+        get_next_rego(maps, rand_m, &rego, regos, num_regos, &start);
+        start++;
          
         pthread_mutex_lock(&entr_q[entrance].m);
         push(&entr_q[entrance].q, rego);
         pthread_cond_signal(&entr_q[entrance].c);
         pthread_mutex_unlock(&entr_q[entrance].m);
-
     }
 }
 
@@ -133,7 +144,6 @@ void * entrance_queue(void * _args){
     shared_queue_t* entr_q = args->entrance_queue; 
     shared_queue_t* exit_qs = args->exit_queues;
     maps_t* maps = args->maps;
-    Map* allow_list = args->allow_list;
     pthread_mutex_t* rand_m = args->rand_m;
     pthread_mutex_t* outer_level_m = args->outer_level_m;
     char * rego;
@@ -216,22 +226,7 @@ void * entrance_queue(void * _args){
 
             pthread_mutex_lock(&maps->m);     
             remove_key(&maps->inside, rego);
-            // check if this is a car on the allow list, if it is we need
-            // to insert it back into the outside map
-            // and remove it from inside
-            if(exists(allow_list, rego)){
-
-                res_t res = insert(&maps->outside, rego, NULL); 
-                if(res.exists == true){
-                    fprintf(stderr, "existed? %s\n", rego);
-                }
-        
-                rego = NULL;
-            }
-            else{
-                // this was a generated car so lets free the memory
-                free(rego);
-            }
+            free(rego);
             pthread_mutex_unlock(&maps->m);
         }
     }
@@ -278,6 +273,10 @@ void * exit_thr(void * _args){
         pthread_cond_wait(&EXIT_LPR(exit, shm)->c, &EXIT_LPR(exit, shm)->m);
         pthread_mutex_unlock(&EXIT_LPR(exit, shm)->m);
         fprintf(stderr, "got lpr\n");
+        struct timespec now;
+        int res = clock_gettime(CLOCK_REALTIME, &now);
+        fprintf(stderr, "%d.%d\n", now.tv_sec, now.tv_nsec);
+ 
 
         pthread_mutex_lock(&EXIT_BOOM(exit, shm)->m);
 
@@ -292,17 +291,8 @@ void * exit_thr(void * _args){
         pthread_mutex_unlock(&EXIT_BOOM(exit, shm)->m);
         
         pthread_mutex_lock(&maps->m);
-        remove_key(&maps->inside, rego);
-        // if the rego was on the allow list add it back to outside
-        // and remove it from inside
-        if(exists(allow_list, rego)){
-            //res_t res = insert(&maps->outside, rego, NULL); 
-            rego = NULL;
-        }
-        else{
-            // rego was generated, we need to free the memory here
-            free(rego);
-        }
+        //remove_key(&maps->inside, rego);
+        free(rego);
         pthread_mutex_unlock(&maps->m);
     }
 }
@@ -345,8 +335,7 @@ void * car(void * _args){
     pthread_mutex_unlock(rand_m);
 
     // park for park_time milliseconds
-    usleep(2*1000);
-    usleep(park_time * 1000);
+    //usleep(park_time * 1000);
     //SLEEP(park_time);
 
     // get outerlevel lock for level

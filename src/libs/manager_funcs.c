@@ -42,12 +42,14 @@ void* entrance_thread(void* _args){
     struct timespec wait_time;
     bool open = false; 
     unsigned long open_duration;
+    struct timespec gate_close_time;
 
     struct boom_t* boom = ENTRANCE_BOOM(tn, shm);
     struct lpr_t* lpr = ENTRANCE_LPR(tn, shm);
     struct sign_t* sign = ENTRANCE_SIGN(tn, shm);
 
     char * rego = calloc(7, sizeof(char));
+    char * rego2 = calloc(7, sizeof(char));
     assert(rego != NULL);
         
     // TODO: I think this is the only place that there aren't assurances on the
@@ -68,6 +70,7 @@ void* entrance_thread(void* _args){
 
     // signal the simluator that we are ready
     pthread_cond_signal(&lpr->c);
+    int rt;
     
     while(1){
         // set lpr and sign
@@ -76,15 +79,11 @@ void* entrance_thread(void* _args){
             sign->display = ' ';
         }
 
-        int rt;
-        do{ 
+        do{
             if(open){
-                future_time(&wait_time, 1);
+                rt = pthread_cond_timedwait(&lpr->c, &lpr->m, &gate_close_time);
 
-                rt = pthread_cond_timedwait(&lpr->c, &lpr->m, &wait_time);
-                int res = time_diff(gate_time, &open_duration);
-
-                if(open_duration >= 20){
+                if(has_past(gate_close_time)){
                     pthread_mutex_lock(&boom->m);
                     boom->state = 'L';     
                     pthread_cond_broadcast(&boom->c);
@@ -97,13 +96,25 @@ void* entrance_thread(void* _args){
                 pthread_cond_wait(&lpr->c, &lpr->m);
                 rt = 0;
             }
+            if(rt != 0 && rt != ETIMEDOUT){
+                fprintf(stderr, "rt = %d\n", rt);
+            }
         }
-        while(rt != 0);
+        while(rt != 0);  
+
+
         pthread_mutex_lock(&boom->m);
 
         // read rego 
         memcpy(rego, &lpr->rego, 6);
         rego[6] = '\0';
+
+        if(strncmp(rego, rego2, 6) == 0){
+            fprintf(stderr, "the same!\n");
+        }
+
+        memcpy(rego2, rego, 6);
+
 
         // check if the rego is on the allow list 
         if(!exists(allow_list, rego)){
@@ -179,13 +190,8 @@ void* entrance_thread(void* _args){
                 pthread_cond_wait(&boom->c, &boom->m);
             }
 
+            future_time(&gate_close_time, 20);
             open = true; 
-            int res = clock_gettime(CLOCK_MONOTONIC, &gate_time);
-           
-            if(res != 0){
-                fprintf(stderr, "error getting the current time");
-                abort(); 
-            }
         } 
         else if(boom->state == 'L'){
             // gate has been open for too long, set to lowering
@@ -204,8 +210,7 @@ void* entrance_thread(void* _args){
                 // wait for the signal that the gate is set to open 
                 pthread_cond_wait(&boom->c, &boom->m);
             }
-            // save the time that the gate was opened
-            int res = clock_gettime(CLOCK_MONOTONIC, &gate_time);
+            future_time(&gate_close_time, 20);
             open = true; 
         }
 
@@ -240,10 +245,13 @@ void* exit_thread(void* _args){
     unsigned long open_duration;
     int rt;
 
-    pthread_mutex_lock(&lpr->m); 
+    //pthread_mutex_lock(&lpr->m); 
+    char * rego2 = calloc(7, sizeof(char));
+    rego2[6] = 0;
 
     while(1){
         memcpy(&lpr->rego, "------", 6);
+        pthread_mutex_lock(&lpr->m); 
         do{
             if(open){
                 rt = pthread_cond_timedwait(&lpr->c, &lpr->m, &gate_close_time);
@@ -271,7 +279,7 @@ void* exit_thread(void* _args){
         // read rego 
         memcpy(rego, &lpr->rego, 6);
 
-        // GET BILLING LOCK
+                // GET BILLING LOCK
         pthread_mutex_lock(billing_m);
         // remove rego from billing data and calcualate bill
         int res = remove_rego(billing, rego, &duration_ms);
@@ -314,6 +322,9 @@ void* exit_thread(void* _args){
         // to remove the regos from the billing and level data before
         // the simulator tries to send that rego into the system again
         pthread_cond_signal(&lpr->c);
+        struct timespec now;
+        res = clock_gettime(CLOCK_REALTIME, &now);
+        fprintf(stderr, "%d.%d\n", now.tv_sec, now.tv_nsec);
         pthread_mutex_unlock(&lpr->m);
 
         // wait on boom signal
@@ -323,7 +334,6 @@ void* exit_thread(void* _args){
         
         // boom gate is set to closed
         if(boom->state == 'C'){
-
             // set gate to raising
             boom->state = 'R';     
             pthread_cond_broadcast(&boom->c);
