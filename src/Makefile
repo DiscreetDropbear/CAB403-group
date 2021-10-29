@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-lpthread -lrt
 MANAGER_LIBS=libs/map.o libs/queue.o libs/leveldata.o libs/utils.o libs/billing.o libs/manager_funcs.o
 SIMULATOR_LIBS=libs/queue.o libs/map.o libs/utils.o libs/simulator_funcs.o
-TEST_LIBS=libs/map.o libs/queue.o 
+TEST_LIBS=libs/map.o libs/queue.o libs/utils.o 
 
 %.o: libs/%.c %.c
 	$(CC) -g -c -o $@ $< $(CFLAGS)

@@ -80,13 +80,12 @@ pair_t get_nth_item(Map* map, size_t n){
                 
                 pair.key = current->key;
                 pair.value = current->value;
-
                  
                 free(current);
                 map->items--;
+
                 return pair;
             }
-
             
             last = current;
             current = current->next;
@@ -200,6 +199,7 @@ res_t remove_key(Map* map, char* key){
 
 bool exists(Map* map, char* key){
     assert(map != NULL);
+    assert(key != NULL);
 
     size_t index = get_index(map, key);
 
@@ -208,7 +208,7 @@ bool exists(Map* map, char* key){
     // that we will need to search through 
     while(current  != NULL){
         // found the key 
-        if(strcmp(current->key, key) == 0){
+        if(strncmp(current->key, key, 6) == 0){
             return true;
         }
         
@@ -290,6 +290,7 @@ res_t internal_insert(Map* map, item_t * item){
         // we don't need it anymore
         // Note: item->value is still being used
         
+        fprintf(stderr, "%s\n", item->key);
         free(item->key);
         free(item);
         return res;

@@ -60,6 +60,7 @@ bool insert_in_level(level_data_t* ld, size_t l_num, char* rego){
         res_t res = insert(&ld->levels[l_num-1]->cars, regoc, NULL);
         // there shouldn't be any case where we are inserting a rego into a level and 
         // there is already the same rego there
+        fprintf(stderr, "level - %d, %s\n", l_num, rego);
         assert(res.exists == false); 
         ld->levels[l_num-1]->free_parks--;
         return true;
@@ -85,9 +86,12 @@ res_t remove_from_level(level_data_t* ld, size_t l_num, char* rego){
     assert(l_num <= ld->num_levels);
 
     res_t res = remove_key(&ld->levels[l_num-1]->cars, rego); 
-
+    
     if(res.exists){
         ld->levels[l_num-1]->free_parks++;
+    }
+    else{
+        fprintf(stderr, "remove failed - %s\n", rego);
     }
 
     return res;

@@ -62,5 +62,6 @@ void * entrance_queue(void *);
 void * car(void *);
 void * exit_thr(void *);
 void * temp_setter(void *);
+void* boom_thread(void * args);
 
 #endif

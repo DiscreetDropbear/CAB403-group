@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <pthread.h>
+#include <errno.h>
 #include "../include/macros.h"
 #include "../include/utils.h"
 
@@ -18,7 +19,7 @@ void init_shared_mem(volatile void * shm){
     (void) pthread_mutexattr_setpshared(&pmut_attr,
         PTHREAD_PROCESS_SHARED);
     (void) pthread_condattr_init(&pcond_attr);
-    (void) pthread_condattr_setclock(&pcond_attr, CLOCK_MONOTONIC);
+    //(void) pthread_condattr_setclock(&pcond_attr, CLOCK_MONOTONIC);
     (void) pthread_condattr_setpshared(&pcond_attr,
         PTHREAD_PROCESS_SHARED);
     /// ENTRANCES
@@ -80,16 +81,53 @@ void init_shared_mem(volatile void * shm){
     }
 }
 
+// adds number of milliseconds onto the current time and returns 
+// it in timespec
+int future_time(struct timespec* out, int milli){
+    int res = clock_gettime(CLOCK_REALTIME, out);
+    const int billion = 1000000000;
+
+    out->tv_nsec += 1000000 * milli * SLEEP_SCALE;
+
+    // tv_nsec needs to be between 1 and a billion
+    // if its over then add the number of billions
+    // its over as seconds and set tv_nsec to the remainder
+    int secs = out->tv_nsec / billion;
+    out->tv_sec += secs;
+    out->tv_nsec = out->tv_nsec % billion;
+}
+
+// compares the current time with another specified time and returns 
+// true if the current time is passed the othe time
+bool has_past(struct timespec time){
+    struct timespec now;
+    int res = clock_gettime(CLOCK_REALTIME, &now);
+    if(res != 0){
+        fprintf(stderr, "error getting time: errno %d\n", errno); 
+        abort();
+    }
+    
+    if(time.tv_sec < now.tv_sec){
+        return true;
+    }
+    else if(time.tv_sec == now.tv_sec && time.tv_nsec <= now.tv_nsec){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
 // TODO: take into account the sleep modifier here so in testing
 // this will still work
 int time_diff(struct timespec before, unsigned long * milli){
     assert(milli != NULL);
     struct timespec now;
     int res = clock_gettime(CLOCK_MONOTONIC, &now);
-    
-    // failure
+
     if(res != 0){
-        return res;
+        fprintf(stderr, "error getting time: errno %d\n", errno); 
+        abort();
     }
 
     //success

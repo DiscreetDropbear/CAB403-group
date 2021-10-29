@@ -1,7 +1,9 @@
-#ifndef MACROS_H
+#ifndef MACROSH
 #define MACROS_H
 #include "types.h"
 #include "unistd.h"
+
+#define DISPLAY_THREAD 1
 
 // sleep macro where duration is milliseconds 
 // we will use this macro to scale the actual sleep time up
@@ -16,28 +18,28 @@
 // entrance is the entrance number (1-5)
 // shm is a (void*) to the shared memory
 
-#define ENTRANCE_LPR(entrance, shm) ((struct lpr *) (shm + ENTRANCE_LPR_OFFSET(entrance)))
+#define ENTRANCE_LPR(entrance, shm) ((struct lpr_t *) (shm + ENTRANCE_LPR_OFFSET(entrance)))
 #define ENTRANCE_LPR_OFFSET(entrance) ((entrance-1) * 288)
 
-#define ENTRANCE_BOOM(entrance, shm) ((struct boom *) (shm + ENTRANCE_BOOM_OFFSET(entrance))) 
+#define ENTRANCE_BOOM(entrance, shm) ((struct boom_t *) (shm + ENTRANCE_BOOM_OFFSET(entrance))) 
 #define ENTRANCE_BOOM_OFFSET(entrance) ((entrance-1) * 288) + 96
 
-#define ENTRANCE_SIGN(entrance, shm) ((struct sign *) (shm + ENTRANCE_SIGN_OFFSET(entrance))) 
+#define ENTRANCE_SIGN(entrance, shm) ((struct sign_t *) (shm + ENTRANCE_SIGN_OFFSET(entrance))) 
 #define ENTRANCE_SIGN_OFFSET(entrance) ((entrance-1) * 288) + 192
 
 // macros to access the lpr(license plate reader), boomgate for the exit 
 // exit is the exit number (1-5) 
 // shm is a (void*) to the shared memory
-#define EXIT_LPR(exit, shm) ((struct lpr *) (shm + EXIT_LPR_OFFSET(exit))) 
-#define EXIT_LPR_OFFSET(exit) 1440 + ((exit-1) * 192)
+#define EXIT_LPR(exit_num, shm) ((struct lpr_t *) (shm + EXIT_LPR_OFFSET(exit_num))) 
+#define EXIT_LPR_OFFSET(exit_num) 1440 + ((exit_num-1) * 192)
 
-#define EXIT_BOOM(exit, shm) ((struct boom *) (shm + EXIT_BOOM_OFFSET(exit))) 
-#define EXIT_BOOM_OFFSET(exit) 1440 + ((exit-1) * 192) + 96 
+#define EXIT_BOOM(exit_num, shm) ((struct boom_t *) (shm + EXIT_BOOM_OFFSET(exit_num))) 
+#define EXIT_BOOM_OFFSET(exit_num) 1440 + ((exit_num-1) * 192) + 96 
 
 // macros to access the lpr(license plate reader), temperature and alarm for the specified exit 
 // level is the level number (1-5)
 // shm is a (void*) to the shared memory
-#define LEVEL_LPR(level, shm) ((struct lpr *) (shm + LEVEL_LPR_OFFSET(level)))
+#define LEVEL_LPR(level, shm) ((struct lpr_t *) (shm + LEVEL_LPR_OFFSET(level)))
 #define LEVEL_LPR_OFFSET(level) 2400 + ((level-1) * 104)
 
 #define LEVEL_TEMP(level, shm) ((short *) (shm + LEVEL_TEMP_OFFSET(level))) 

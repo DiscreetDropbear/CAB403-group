@@ -8,24 +8,24 @@
 
 #include <pthread.h>
 
-#define ENTRANCES 5 
-#define EXITS 5 
-#define LEVELS 5 
+#define ENTRANCES 1 
+#define EXITS 1 
+#define LEVELS 1 
 #define LEVEL_CAPACITY 20
 
-struct lpr {
+struct lpr_t {
     pthread_mutex_t m;
     pthread_cond_t c;
     char rego[6];
 };
 
-struct boom {
+struct boom_t {
 	pthread_mutex_t m;
 	pthread_cond_t c;
 	char state;
 };
 
-struct sign{
+struct sign_t{
 	pthread_mutex_t m;
 	pthread_cond_t c;
 	char display;

@@ -15,11 +15,11 @@ int generate_rego(char * rego, pthread_mutex_t* rand_m){
 
     pthread_mutex_lock(rand_m);
 	for (int i = 0; i < 3; i++) {
-        rego[i] = rand() %(57 - 48 + 1) + 48; //char range for numbers
+        rego[i] = (char)(rand() %(57 - 48 + 1) + 48); //char range for numbers
     }
     // Generate three random numbers
  	for (int i = 3; i < 6; i++) {
-        rego[i] = rand() %(90 - 65 + 1) + 65; //char range for letter 
+        rego[i] = (char)(rand() %(90 - 65 + 1) + 65); //char range for letter 
     }
     pthread_mutex_unlock(rand_m);
 
@@ -51,22 +51,26 @@ int select_valid_rego(Map * outside, char** rego_o, pthread_mutex_t* rand_m){
 }
 
 // returns 0 if the rego is from the allow list or 1 if it was generated
-int get_next_rego(Map * inside, Map * outside, pthread_mutex_t* rand_m, char ** rego, int* valid_rego){
+int get_next_rego(maps_t * maps, pthread_mutex_t* rand_m, char ** rego){
     char * tmp;
 
     pthread_mutex_lock(rand_m);
     int generate = (rand() % 10); //will provide 1 or 0
     pthread_mutex_unlock(rand_m);
 
-    if(generate > 2){
-        // a valid rego was successfully received
-        if(select_valid_rego(outside, &tmp, rand_m) == 0){
-            *valid_rego +=1;
-            fprintf(stderr, "got %dth valid rego", *valid_rego);
-            // insert the rego into the inside map
-            insert(inside, tmp, NULL);
-            *rego = tmp;
-            return 0;
+    if(1){
+        while(1){
+            pthread_mutex_lock(&maps->m);
+            // a valid rego was successfully received
+            if(select_valid_rego(&maps->outside, &tmp, rand_m) == 0){
+
+                // insert the rego into the inside map
+                res_t res = insert(&maps->inside, tmp, NULL); 
+                *rego = tmp;
+                pthread_mutex_unlock(&maps->m);
+                return 0;
+            }
+            pthread_mutex_unlock(&maps->m);
         }
     }
         
@@ -79,16 +83,18 @@ int get_next_rego(Map * inside, Map * outside, pthread_mutex_t* rand_m, char ** 
 
         if(generate_rego(tmp, rand_m) == -1){
             fprintf(stderr, "there was an error generating a random rego\n"); 
-            abort();
+            exit(-1);
         }
 
+        pthread_mutex_lock(&maps->m);
         // make sure the rego doesn't already exist in the outside map(the allowed cars)
         // or the inside map(the cars that are already inside the carpark)
-        if(!exists(inside, tmp) && !exists(outside, tmp)){
-            insert(inside, tmp, NULL);
+        if(!exists(&maps->inside, tmp) && !exists(&maps->outside, tmp)){
+            insert(&maps->inside, tmp, NULL);
             *rego = tmp;
             return 1;
         }
+        pthread_mutex_unlock(&maps->m);
     }
 }
 
@@ -99,7 +105,6 @@ void * generator(void* _args){
     maps_t* maps = args->maps;
     pthread_mutex_t* rand_m = args->rand_m;
     char *rego;
-    int valid_rego = 0;
 
     while(1){
         pthread_mutex_lock(rand_m);
@@ -111,11 +116,7 @@ void * generator(void* _args){
         //SLEEP(1);
         usleep(st*1000);
 
-        //fprintf(stderr, "\t\tgetting maps lock\n");
-        pthread_mutex_lock(&maps->m);
-        get_next_rego(&maps->inside, &maps->outside, rand_m, &rego, &valid_rego);
-        pthread_mutex_unlock(&maps->m);
-        //fprintf(stderr, "\t\tlock released\n");
+        get_next_rego(maps, rand_m, &rego);
          
         pthread_mutex_lock(&entr_q[entrance].m);
         push(&entr_q[entrance].q, rego);
@@ -128,7 +129,7 @@ void * generator(void* _args){
 void * entrance_queue(void * _args){
     entr_args_t* args = _args;
     volatile void * shm = args->shm;
-    size_t entrance = args->entrance;
+    const size_t entrance = args->entrance;
     shared_queue_t* entr_q = args->entrance_queue; 
     shared_queue_t* exit_qs = args->exit_queues;
     maps_t* maps = args->maps;
@@ -149,7 +150,6 @@ void * entrance_queue(void * _args){
         rego = pop(&entr_q->q); 
 
         if(rego == NULL){
-            fprintf(stderr, "queue empty\n");
             // wait for a signal that there is another rego in the queue
 //            fprintf(stderr, "sleep\n");
             pthread_mutex_unlock(&entr_q->m);
@@ -161,10 +161,8 @@ void * entrance_queue(void * _args){
         // car has reached the front of the queue
         // wait 2 ms as per the spec
         SLEEP(2);
-
         
         pthread_mutex_lock(&ENTRANCE_LPR(entrance, shm)->m);  
-        pthread_mutex_lock(&ENTRANCE_BOOM(entrance, shm)->m);
         pthread_mutex_lock(&ENTRANCE_SIGN(entrance, shm)->m);
         
         // copy the rego into the lpr
@@ -179,39 +177,29 @@ void * entrance_queue(void * _args){
         // wait for the entrance thread to write a response on the sign
         pthread_cond_wait(&ENTRANCE_SIGN(entrance, shm)->c, &ENTRANCE_SIGN(entrance, shm)->m);
          
-        fprintf(stderr, "reading sign\n");
         // read the sign
         char val = ENTRANCE_SIGN(entrance, shm)->display;
+
+        pthread_mutex_unlock(&ENTRANCE_SIGN(entrance, shm)->m);
 
         // the car is allowed in val is between 1 and 5 in ascii 
         // encoding
         if( val >= '1' && val <= '5' ){
             // val is between 1 and 5 in ascii encoding
-            fprintf(stderr, "waiting on boom\n");
-            pthread_cond_wait(&ENTRANCE_BOOM(entrance, shm)->c, &ENTRANCE_BOOM(entrance, shm)->m);
-            
-            char boom_val = ENTRANCE_BOOM(entrance, shm)->state; 
 
-            if(boom_val == 'L'){
+            pthread_mutex_lock(&ENTRANCE_BOOM(entrance, shm)->m);
 
-                fprintf(stderr, "boom lowering\n");
-                SLEEP(10); 
-                ENTRANCE_BOOM(entrance, shm)->state = 'C'; 
-                pthread_cond_signal(&ENTRANCE_BOOM(entrance, shm)->c);
+            while(ENTRANCE_BOOM(entrance, shm)->state != 'O'){
+                if(ENTRANCE_BOOM(entrance, shm)->state == 'C'){
+                    pthread_cond_broadcast(&ENTRANCE_BOOM(entrance, shm)->c);
+                }
+                
                 pthread_cond_wait(&ENTRANCE_BOOM(entrance, shm)->c, &ENTRANCE_BOOM(entrance, shm)->m);
-                boom_val = ENTRANCE_BOOM(entrance, shm)->state;
-                assert(boom_val == 'R');
             }
             
-            if(boom_val == 'R'){
-                fprintf(stderr, "boom raising\n");
-                SLEEP(10); 
-                ENTRANCE_BOOM(entrance, shm)->state = 'O'; 
-                pthread_cond_signal(&ENTRANCE_BOOM(entrance, shm)->c);
-            }
+            pthread_mutex_unlock(&ENTRANCE_BOOM(entrance, shm)->m);            
 
             int level = val - 48;
-
             // start the car thread
             car_args_t * args = calloc(1, sizeof(car_args_t));
             args->level = level; 
@@ -226,23 +214,26 @@ void * entrance_queue(void * _args){
         // car isn't allowed in
         else{
 
-            fprintf(stderr, "denied\n");
+            pthread_mutex_lock(&maps->m);     
+            remove_key(&maps->inside, rego);
             // check if this is a car on the allow list, if it is we need
             // to insert it back into the outside map
+            // and remove it from inside
             if(exists(allow_list, rego)){
-                pthread_mutex_lock(&maps->m);     
-                insert(&maps->outside, rego, NULL); 
-                pthread_mutex_unlock(&maps->m);
+
+                res_t res = insert(&maps->outside, rego, NULL); 
+                if(res.exists == true){
+                    fprintf(stderr, "existed? %s\n", rego);
+                }
+        
                 rego = NULL;
             }
             else{
                 // this was a generated car so lets free the memory
                 free(rego);
             }
+            pthread_mutex_unlock(&maps->m);
         }
-        
-        pthread_mutex_unlock(&ENTRANCE_BOOM(entrance, shm)->m);
-        pthread_mutex_unlock(&ENTRANCE_SIGN(entrance, shm)->m);
     }
 }
 
@@ -273,52 +264,46 @@ void * exit_thr(void * _args){
         pthread_mutex_unlock(&exit_q->m);
         
         pthread_mutex_lock(&EXIT_LPR(exit, shm)->m);
-        pthread_mutex_lock(&EXIT_BOOM(exit, shm)->m);
         
         // write rego into lpr
         memcpy(&EXIT_LPR(exit, shm)->rego, rego, 6);
        
         pthread_cond_signal(&EXIT_LPR(exit, shm)->c);
+
+        // wait on lpr to avoid race condition between
+        // adding this rego back to the available regos for
+        // the generator to select and the
+        // mangager removing it from the billing map 
+        fprintf(stderr, "waiting on lpr\n");
+        pthread_cond_wait(&EXIT_LPR(exit, shm)->c, &EXIT_LPR(exit, shm)->m);
         pthread_mutex_unlock(&EXIT_LPR(exit, shm)->m);
+        fprintf(stderr, "got lpr\n");
 
-        pthread_cond_wait(&EXIT_BOOM(exit, shm)->c, &EXIT_BOOM(exit, shm)->m);
+        pthread_mutex_lock(&EXIT_BOOM(exit, shm)->m);
 
-        char boom_val = EXIT_BOOM(exit, shm)->state; 
-
-        if(boom_val == 'L'){
-            SLEEP(10); 
-            EXIT_BOOM(exit, shm)->state = 'C'; 
-            pthread_cond_signal(&EXIT_BOOM(exit, shm)->c);
+        while(EXIT_BOOM(exit, shm)->state != 'O'){
+            if(EXIT_BOOM(exit, shm)->state == 'C'){
+                pthread_cond_broadcast(&EXIT_BOOM(exit, shm)->c);
+            }
+            
             pthread_cond_wait(&EXIT_BOOM(exit, shm)->c, &EXIT_BOOM(exit, shm)->m);
-            boom_val = EXIT_BOOM(exit, shm)->state;
-            assert(boom_val == 'R');
-        }
-        
-        if(boom_val == 'R'){
-            SLEEP(10); 
-            EXIT_BOOM(exit, shm)->state = 'O'; 
-            pthread_cond_signal(&EXIT_BOOM(exit, shm)->c);
         }
 
         pthread_mutex_unlock(&EXIT_BOOM(exit, shm)->m);
-        // EXIT_LPR mutex has already been unlocked
-
+        
+        pthread_mutex_lock(&maps->m);
+        remove_key(&maps->inside, rego);
         // if the rego was on the allow list add it back to outside
         // and remove it from inside
         if(exists(allow_list, rego)){
-
-            fprintf(stderr, "waiting on lock\n");
-            pthread_mutex_lock(&maps->m);
-            insert(&maps->outside, rego, NULL); 
-            remove_key(&maps->inside, rego);
-            fprintf(stderr, "done with lock\n");
-            pthread_mutex_unlock(&maps->m);
+            //res_t res = insert(&maps->outside, rego, NULL); 
             rego = NULL;
         }
         else{
             // rego was generated, we need to free the memory here
             free(rego);
         }
+        pthread_mutex_unlock(&maps->m);
     }
 }
 
@@ -360,8 +345,9 @@ void * car(void * _args){
     pthread_mutex_unlock(rand_m);
 
     // park for park_time milliseconds
-    //usleep(2*1000);
-    SLEEP(park_time);
+    usleep(2*1000);
+    usleep(park_time * 1000);
+    //SLEEP(park_time);
 
     // get outerlevel lock for level
     pthread_mutex_lock(&outer_level_m[level-1]);
@@ -399,7 +385,27 @@ void * car(void * _args){
     free(args);
 }
 
-// TODO: make it more likely to increase given that its decreased
+
+void* boom_thread(void * args){
+    struct boom_t* boom = args; 
+    
+    pthread_mutex_lock(&boom->m);
+    while(1){
+        pthread_cond_wait(&boom->c, &boom->m);
+
+        if(boom->state == 'L'){
+            SLEEP(10);
+            boom->state = 'C';
+            pthread_cond_broadcast(&boom->c);
+        }
+        else if(boom->state == 'R'){
+            SLEEP(10);
+            boom->state = 'O';
+            pthread_cond_broadcast(&boom->c);
+        }
+    }
+}
+
 void * temp_setter(void * _args){
     temp_args_t * args = _args;
     volatile void * shm = args->shm;
@@ -408,7 +414,10 @@ void * temp_setter(void * _args){
     
     // 0 is decrease
     // 1 is increase
-    int scale[LEVELS] = {0, 0, 0, 0, 0};
+    int scale[LEVELS];
+    for(int i=0;i<LEVELS;i++){
+        scale[i]=0;
+    }
 
     int change = 0;
     short change_val = 0;
@@ -458,12 +467,10 @@ void * temp_setter(void * _args){
 
             int middle = 10;
             middle += scale[i-1];
-            // 12 % chance of decrease
             if(change > 80 && change <= 80+middle ){
                 scale[i-1] -= change_val; 
                 *LEVEL_TEMP(i,shm) -= change_val;   
             }
-            // 12 % chance of  increase
             else{
 
                 scale[i-1] += change_val; 

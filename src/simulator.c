@@ -75,6 +75,7 @@ void init_maps(){
 }
 
 int main() {
+    pthread_t boom_threads[ENTRANCES+EXITS];
     pthread_t entrance_threads[ENTRANCES];
     pthread_t exit_threads[EXITS];
     pthread_t generator_thread; 
@@ -112,6 +113,7 @@ int main() {
     // setup the maps and the maps mutex
     init_maps();
 
+
 	/// start car entry threads (one per entry)
     for(int i = 0; i < ENTRANCES; i++){
         entr_args[i].shm = shm;
@@ -124,6 +126,7 @@ int main() {
         entr_args[i].outer_level_m = &outer_level_m[0];
 
         pthread_create(&entrance_threads[i], NULL, &entrance_queue, &entr_args[i]);         
+        pthread_create(&boom_threads[i], NULL, &boom_thread, ENTRANCE_BOOM(i+1, shm));
     }
 
     /// start car exit threads (one per exit)
@@ -134,6 +137,7 @@ int main() {
         exit_args[i].exit_queue = &exit_queues[i];
         exit_args[i].maps = &maps;
         pthread_create(&exit_threads[i], NULL, &exit_thr, &exit_args[i]);         
+        pthread_create(&boom_threads[ENTRANCES-1+i], NULL, &boom_thread, EXIT_BOOM(i+1, shm));
     }
 
     /// start car generator thread
