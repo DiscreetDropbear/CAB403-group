@@ -3,7 +3,7 @@
 #include "types.h"
 #include "unistd.h"
 
-#define DISPLAY_THREAD 1
+#define DISPLAY_THREAD 1 
 
 // sleep macro where duration is milliseconds 
 // we will use this macro to scale the actual sleep time up
@@ -26,6 +26,7 @@
 
 #define ENTRANCE_SIGN(entrance, shm) ((struct sign_t *) (shm + ENTRANCE_SIGN_OFFSET(entrance))) 
 #define ENTRANCE_SIGN_OFFSET(entrance) ((entrance-1) * 288) + 192
+#define ENTRANCE_SIGN_DISPLAY_OFFSET(entrance) (((entrance-1) * 288) + 280) 
 
 // macros to access the lpr(license plate reader), boomgate for the exit 
 // exit is the exit number (1-5) 

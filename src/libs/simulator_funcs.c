@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -53,23 +54,15 @@ int get_next_rego(maps_t * maps, pthread_mutex_t* rand_m, char ** rego, char ** 
         do{
             // get next valid rego  
             //select_valid_rego(regos, num_regos, *rego, rand_m); 
-            if( *count < num_regos){
+            if( *count >= num_regos){
+                *count = 0;
+            }
                 memcpy(*rego, regos[*count], 6);
-            }
-            else{
-                usleep(1000000000);
-            }
 
             // make sure its not already inside
             pthread_mutex_lock(&maps->m);
             res = exists(&maps->inside, *rego); 
             pthread_mutex_unlock(&maps->m);
-
-            if(res == true){
-                fprintf(stderr, "exists - %d\n", debugin);
-                exit(-1);
-                debugin++;
-            }
 
         } while(res == true);
 
@@ -148,6 +141,7 @@ void * entrance_queue(void * _args){
     pthread_mutex_t* outer_level_m = args->outer_level_m;
     char * rego;
 
+    int count = 0;
     struct timespec wait_time;
    
     // wait on the entrance lpr signal so we know the manager is ready
@@ -161,12 +155,12 @@ void * entrance_queue(void * _args){
 
         if(rego == NULL){
             // wait for a signal that there is another rego in the queue
-//            fprintf(stderr, "sleep\n");
             pthread_mutex_unlock(&entr_q->m);
             usleep(1*1000);
             continue;
         }
         pthread_mutex_unlock(&entr_q->m);
+
 
         // car has reached the front of the queue
         // wait 2 ms as per the spec
@@ -186,27 +180,21 @@ void * entrance_queue(void * _args){
 
         // wait for the entrance thread to write a response on the sign
         pthread_cond_wait(&ENTRANCE_SIGN(entrance, shm)->c, &ENTRANCE_SIGN(entrance, shm)->m);
-         
-        // read the sign
         char val = ENTRANCE_SIGN(entrance, shm)->display;
-
+        pthread_cond_signal(&ENTRANCE_SIGN(entrance, shm)->c);
         pthread_mutex_unlock(&ENTRANCE_SIGN(entrance, shm)->m);
+
 
         // the car is allowed in val is between 1 and 5 in ascii 
         // encoding
         if( val >= '1' && val <= '5' ){
             // val is between 1 and 5 in ascii encoding
-
             pthread_mutex_lock(&ENTRANCE_BOOM(entrance, shm)->m);
+            count++;
 
             while(ENTRANCE_BOOM(entrance, shm)->state != 'O'){
-                if(ENTRANCE_BOOM(entrance, shm)->state == 'C'){
-                    pthread_cond_broadcast(&ENTRANCE_BOOM(entrance, shm)->c);
-                }
-                
                 pthread_cond_wait(&ENTRANCE_BOOM(entrance, shm)->c, &ENTRANCE_BOOM(entrance, shm)->m);
             }
-            
             pthread_mutex_unlock(&ENTRANCE_BOOM(entrance, shm)->m);            
 
             int level = val - 48;
@@ -219,11 +207,18 @@ void * entrance_queue(void * _args){
             args->rand_m = rand_m;
             args->outer_level_m = outer_level_m;
             pthread_t tmp; 
-            pthread_create(&tmp, NULL, &car, args); 
+
+            int res; 
+            do{ 
+                res = pthread_create(&tmp, NULL, &car, args); 
+                if(res != 0){
+                    fprintf(stderr, "pthread_create error = %d\n", res);
+                }
+            }
+            while(res != 0);
         }
         // car isn't allowed in
         else{
-
             pthread_mutex_lock(&maps->m);     
             remove_key(&maps->inside, rego);
             free(rego);
@@ -241,20 +236,23 @@ void * exit_thr(void * _args){
     maps_t* maps = args->maps;
     char * rego;
 
+    int num = 0;
+
+    int count = 0;
+
     while(1){
         pthread_mutex_lock(&exit_q->m);
         rego = pop(&exit_q->q); 
         
         if(rego == NULL){
+            /*
             pthread_mutex_unlock(&exit_q->m);
             usleep(1*1000);
             continue;
-            // wait for a signal that there is another rego in the queue
-            /*
+            */
             pthread_cond_wait(&exit_q->c, &exit_q->m);
             pthread_mutex_unlock(&exit_q->m);
             continue;
-            */
         }
         pthread_mutex_unlock(&exit_q->m);
         
@@ -264,34 +262,20 @@ void * exit_thr(void * _args){
         memcpy(&EXIT_LPR(exit, shm)->rego, rego, 6);
        
         pthread_cond_signal(&EXIT_LPR(exit, shm)->c);
-
-        // wait on lpr to avoid race condition between
-        // adding this rego back to the available regos for
-        // the generator to select and the
-        // mangager removing it from the billing map 
-        fprintf(stderr, "waiting on lpr\n");
         pthread_cond_wait(&EXIT_LPR(exit, shm)->c, &EXIT_LPR(exit, shm)->m);
+        pthread_cond_signal(&EXIT_LPR(exit, shm)->c);
         pthread_mutex_unlock(&EXIT_LPR(exit, shm)->m);
-        fprintf(stderr, "got lpr\n");
-        struct timespec now;
-        int res = clock_gettime(CLOCK_REALTIME, &now);
-        fprintf(stderr, "%d.%d\n", now.tv_sec, now.tv_nsec);
- 
 
         pthread_mutex_lock(&EXIT_BOOM(exit, shm)->m);
-
         while(EXIT_BOOM(exit, shm)->state != 'O'){
-            if(EXIT_BOOM(exit, shm)->state == 'C'){
-                pthread_cond_broadcast(&EXIT_BOOM(exit, shm)->c);
-            }
-            
             pthread_cond_wait(&EXIT_BOOM(exit, shm)->c, &EXIT_BOOM(exit, shm)->m);
         }
-
         pthread_mutex_unlock(&EXIT_BOOM(exit, shm)->m);
+
+        count++;
         
         pthread_mutex_lock(&maps->m);
-        //remove_key(&maps->inside, rego);
+        remove_key(&maps->inside, rego);
         free(rego);
         pthread_mutex_unlock(&maps->m);
     }
@@ -336,6 +320,7 @@ void * car(void * _args){
 
     // park for park_time milliseconds
     //usleep(park_time * 1000);
+    usleep(2* 1000);
     //SLEEP(park_time);
 
     // get outerlevel lock for level
@@ -366,7 +351,6 @@ void * car(void * _args){
     
     pthread_mutex_lock(&exit_qs[exit].m);
     push(&exit_qs[exit].q, rego);
-
     pthread_cond_signal(&exit_qs[exit].c);
     pthread_mutex_unlock(&exit_qs[exit].m);
 
@@ -390,7 +374,7 @@ void* boom_thread(void * args){
         else if(boom->state == 'R'){
             SLEEP(10);
             boom->state = 'O';
-            pthread_cond_broadcast(&boom->c);
+                pthread_cond_broadcast(&boom->c);
         }
     }
 }
@@ -422,12 +406,11 @@ void * temp_setter(void * _args){
     }
 
     while(1){
-        SLEEP(sleep_time); 
-        // increase, decrease or keep the temp the same on
+
+               // increase, decrease or keep the temp the same on
         // each level
         for(int i=1; i<=LEVELS; i++){
             pthread_mutex_lock(rand_m); 
-            sleep_time = (rand() % 5) +1;
             change = rand() % 100;
             change_val = rand() % 100; 
             pthread_mutex_unlock(rand_m);
@@ -466,5 +449,12 @@ void * temp_setter(void * _args){
                 *LEVEL_TEMP(i,shm) += change_val;   
             }
         }
+        
+        pthread_mutex_lock(rand_m); 
+        sleep_time = (rand() % 5) +1;
+        pthread_mutex_unlock(rand_m);
+        SLEEP(sleep_time); 
+
+
     }
 }

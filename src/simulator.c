@@ -97,7 +97,6 @@ int main() {
     // setup the maps and the maps mutex
     init_maps();
 
-
 	/// start car entry threads (one per entry)
     for(int i = 0; i < ENTRANCES; i++){
         entr_args[i].shm = shm;

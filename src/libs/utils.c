@@ -87,12 +87,13 @@ int future_time(struct timespec* out, int milli){
     int res = clock_gettime(CLOCK_REALTIME, out);
     const int billion = 1000000000;
 
-    out->tv_nsec += 1000000 * milli * SLEEP_SCALE;
+    unsigned long nsec = out->tv_nsec + 1000000 * milli * SLEEP_SCALE;
 
-    // tv_nsec needs to be between 1 and a billion
+
+        // tv_nsec needs to be between 1 and a billion
     // if its over then add the number of billions
     // its over as seconds and set tv_nsec to the remainder
-    int secs = out->tv_nsec / billion;
+    int secs = nsec / billion;
     out->tv_sec += secs;
     out->tv_nsec = out->tv_nsec % billion;
 }

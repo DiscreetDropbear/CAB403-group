@@ -27,22 +27,23 @@ void free_level_data(level_data_t* ld){
 // returns a level that has the most free parks
 size_t get_available_level(level_data_t* ld){
 
-    int largest = ld->levels[0]->free_parks;
-    int index = 0;
-    for(int i = 1; i < ld->num_levels; i++){
+    int largest = LEVEL_CAPACITY - cars_in_level(ld, 1);
+    int index = 1;
+
+    for(int i = 1; i <= LEVELS; i++){
         // if there are any available spots  
-        if(ld->levels[i]->free_parks > largest){  
-            largest = ld->levels[i]->free_parks;
+        if(LEVEL_CAPACITY - cars_in_level(ld, i) > largest){  
+            largest = LEVEL_CAPACITY - cars_in_level(ld, i);
             index = i; 
         }
     }
    
-    if(ld->levels[index]->free_parks == 0){
+    if(LEVEL_CAPACITY - cars_in_level(ld, index) == 0){
         // 0 means here are no avilable parks on any level
         return 0;
     }
     else{
-        return index+1;
+        return index;
     }
 }
 
@@ -52,7 +53,7 @@ size_t get_available_level(level_data_t* ld){
 // valid and they must free it
 bool insert_in_level(level_data_t* ld, size_t l_num, char* rego){
     assert(l_num <= ld->num_levels);
-    if(ld->levels[l_num-1]->free_parks > 0){
+    if(LEVEL_CAPACITY - cars_in_level(ld, l_num) > 0){
 
         char* regoc = malloc(7);
         memcpy((void*)regoc, rego, 7);
@@ -60,9 +61,7 @@ bool insert_in_level(level_data_t* ld, size_t l_num, char* rego){
         res_t res = insert(&ld->levels[l_num-1]->cars, regoc, NULL);
         // there shouldn't be any case where we are inserting a rego into a level and 
         // there is already the same rego there
-        fprintf(stderr, "level - %d, %s\n", l_num, rego);
         assert(res.exists == false); 
-        ld->levels[l_num-1]->free_parks--;
         return true;
     }
     return false;
@@ -87,20 +86,22 @@ res_t remove_from_level(level_data_t* ld, size_t l_num, char* rego){
 
     res_t res = remove_key(&ld->levels[l_num-1]->cars, rego); 
     
-    if(res.exists){
-        ld->levels[l_num-1]->free_parks++;
-    }
-    else{
-        fprintf(stderr, "remove failed - %s\n", rego);
-    }
-
     return res;
 }
 
 res_t remove_from_all_levels(level_data_t* ld, char* rego){
+    int removed = 0;
+    
     for(int i = 0; i<ld->num_levels; i++){
-        remove_from_level(ld, i+1, rego);
+        if(LEVEL_CAPACITY - LEVEL_CAPACITY - cars_in_level(ld, i+1) > 0){
+            res_t res = remove_from_level(ld, i+1, rego);
+            if(res.exists){
+                removed++;
+            }
+        }
     }
+
+    assert(removed == 1);
 }
 
 // returns true if the given rego exists in the level referred to by l_num 
@@ -110,9 +111,9 @@ bool exists_in_level(level_data_t* ld, size_t l_num, char* rego){
 }
 
 // returns the number of free parks in the level referred to by l_num
-size_t levels_free_parks(level_data_t* ld, size_t l_num){
+size_t cars_in_level(level_data_t* ld, size_t l_num){
     assert(l_num <= ld->num_levels);
-    return ld->levels[l_num-1]->free_parks;
+    return get_count(&ld->levels[l_num-1]->cars);
 }
 
 //
@@ -132,7 +133,6 @@ level_t* init_level(size_t level_cap){
         abort();
     }
 
-    l->free_parks = level_cap;
     init_map(&l->cars, level_cap);
 
     return l;
