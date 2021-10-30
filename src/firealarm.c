@@ -37,8 +37,7 @@ struct tempnode {
 	struct tempnode *next;
 };
 
-struct tempnode *deletenodes(struct tempnode *templist, int after)
-{
+struct tempnode *deletenodes(struct tempnode *templist, int after){
 	if (templist->next) {
 		templist->next = deletenodes(templist->next, after - 1);
 	}
@@ -48,13 +47,12 @@ struct tempnode *deletenodes(struct tempnode *templist, int after)
 	}
 	return templist;
 }
-int compare(const void *first, const void *second)
-{
+
+int compare(const void *first, const void *second){
 	return *((const int *)first) - *((const int *)second);
 }
 
-void tempmonitor(int level)
-{
+void tempmonitor(int level){
 	struct tempnode *templist = NULL, *newtemp, *medianlist = NULL, *oldesttemp;
 	int count, addr, temp, mediantemp, hightemps;
 	
@@ -121,9 +119,7 @@ void tempmonitor(int level)
 					alarm_active = 1;
 			}
 		}
-
 		usleep(2000);
-		
 	}
 }
 
@@ -144,6 +140,7 @@ void *openboomgate(void *arg)
 	
 }
 
+
 int main()
 {
 	shm_fd = shm_open("PARKING", O_RDWR, 0);
@@ -156,36 +153,37 @@ int main()
 	}
 	for (;;) {
 		if (alarm_active) {
-			goto emergency_mode;
+
+			fprintf(stderr, "*** ALARM ACTIVE ***\n");
+			
+			// Handle the alarm system and open boom gates
+			// Activate alarms on all levels
+			for (int i = 0; i < LEVELS; i++) {
+				int addr = 0150 * i + 2498;
+				char *alarm_trigger = (char *)shm + addr;
+				*alarm_trigger = 1;
+			}
+			
+			// Open up all boom gates
+			pthread_t *boomgatethreads = malloc(sizeof(pthread_t) * (ENTRANCES + EXITS));
+			for (int i = 0; i < ENTRANCES; i++) {
+				int addr = 288 * i + 96;
+				volatile struct boomgate *bg = shm + addr;
+				pthread_create(boomgatethreads + i, NULL, openboomgate, bg);
+			}
+			for (int i = 0; i < EXITS; i++) {
+				int addr = 192 * i + 1536;
+				volatile struct boomgate *bg = shm + addr;
+				pthread_create(boomgatethreads + ENTRANCES + i, NULL, openboomgate, bg);
+			}
+
+			break;
+
 		}
 		usleep(1000);
 	}
 	
-	emergency_mode:
-	fprintf(stderr, "*** ALARM ACTIVE ***\n");
-	
-	// Handle the alarm system and open boom gates
-	// Activate alarms on all levels
-	for (int i = 0; i < LEVELS; i++) {
-		int addr = 0150 * i + 2498;
-		char *alarm_trigger = (char *)shm + addr;
-		*alarm_trigger = 1;
-	}
-	
-	// Open up all boom gates
-	pthread_t *boomgatethreads = malloc(sizeof(pthread_t) * (ENTRANCES + EXITS));
-	for (int i = 0; i < ENTRANCES; i++) {
-		int addr = 288 * i + 96;
-		volatile struct boomgate *bg = shm + addr;
-		pthread_create(boomgatethreads + i, NULL, openboomgate, bg);
-	}
-	for (int i = 0; i < EXITS; i++) {
-		int addr = 192 * i + 1536;
-		volatile struct boomgate *bg = shm + addr;
-		pthread_create(boomgatethreads + ENTRANCES + i, NULL, openboomgate, bg);
-	}
-	
-	// Show evacuation message on an endless loop
+		// Show evacuation message on an endless loop	
 	for (;;) {
 		char *evacmessage = "EVACUATE ";
 		for (char *p = evacmessage; *p != '\0'; p++) {
@@ -204,7 +202,7 @@ int main()
 	for (int i = 0; i < LEVELS; i++) {
 		pthread_join(threads[i], NULL);
 	}
-	
+
 	munmap((void *)shm, 2920);
 	close(shm_fd);
 }

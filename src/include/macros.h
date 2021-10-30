@@ -9,7 +9,7 @@
 #define SLEEP(duration) usleep(duration * 1000 * SLEEP_SCALE) 
 // This will help to make the sleep times longer for testing without
 // having to change any of the sleep code within any of the code
-#define SLEEP_SCALE 1 
+#define SLEEP_SCALE 100
 
 // TODO: make sure macro definitions work for struct attribute accesses
 // macros to access the lpr(license plate reader), boomgate and sign for the entrance
