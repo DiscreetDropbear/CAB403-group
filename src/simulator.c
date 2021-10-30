@@ -46,35 +46,11 @@ void init_shared_queues(){
 
 void init_maps(){
     pthread_mutex_init(&maps.m, NULL);
-    
-    char ** regos;
-    int num_regos;
-
-    if(load_regos(&regos, &num_regos) != 0){
-        fprintf(stderr, "error retreiving regos from plates.txt"); 
-        exit(-1);
-    }
-
-    init_map(&maps.inside, num_regos);
-    init_map(&maps.outside, num_regos);
-    init_map(&allow_list, num_regos);
-
-    // insert all of the allowed regos into the outside map
-    // and the allow list
-    for(int i = 0; i < num_regos; i++){
-        // this copies the regos so we still have to free our copy
-        insert(&maps.outside, regos[i], NULL);
-        insert(&allow_list, regos[i], NULL);
-    }
-
-    // free the memory for regos
-    for(int i = 0; i< num_regos; i++){
-        free(regos[i]);
-    }
-    free(regos);
+    init_map(&maps.inside, 0);
 }
 
 int main() {
+    pthread_t boom_threads[ENTRANCES+EXITS];
     pthread_t entrance_threads[ENTRANCES];
     pthread_t exit_threads[EXITS];
     pthread_t generator_thread; 
@@ -84,6 +60,15 @@ int main() {
     generator_args_t gen_args;
     entr_args_t entr_args[ENTRANCES];
     exit_args_t exit_args[EXITS];
+
+    // load the regos 
+    char ** regos;
+    int num_regos;
+
+    if(load_regos(&regos, &num_regos) != 0){
+        fprintf(stderr, "error retreiving regos from plates.txt"); 
+        exit(-1);
+    }
 
     // set the seed for rand 
     srand(time(0));
@@ -124,6 +109,7 @@ int main() {
         entr_args[i].outer_level_m = &outer_level_m[0];
 
         pthread_create(&entrance_threads[i], NULL, &entrance_queue, &entr_args[i]);         
+        pthread_create(&boom_threads[i], NULL, &boom_thread, ENTRANCE_BOOM(i+1, shm));
     }
 
     /// start car exit threads (one per exit)
@@ -134,10 +120,13 @@ int main() {
         exit_args[i].exit_queue = &exit_queues[i];
         exit_args[i].maps = &maps;
         pthread_create(&exit_threads[i], NULL, &exit_thr, &exit_args[i]);         
+        pthread_create(&boom_threads[ENTRANCES-1+i], NULL, &boom_thread, EXIT_BOOM(i+1, shm));
     }
 
     /// start car generator thread
     gen_args.entrance_queues = &entrance_queues[0];
+    gen_args.regos = regos;
+    gen_args.num_regos = num_regos;
     gen_args.exit_queues = &exit_queues[0];
     gen_args.maps = &maps;
     gen_args.rand_m = &rand_m;

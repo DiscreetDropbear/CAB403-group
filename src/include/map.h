@@ -2,13 +2,8 @@
 #define MAP_H
 #include<stdbool.h>
 
-// the map assumes that all values stored within it are stored on the heap
-// you shouldn't point to a value that lives on the stack or any global memory
-// as it will try to free any values that are still left inside it when you 
-// call free_map()
-
 // the initial size of the map, will grow as needed, we won't implement shrinking as we won't need too
-#define INIT_SIZE 8 
+#define INIT_SIZE 1024 
 // a percentage between 0 and 1 exclusive, specifies how many items to available spots there should
 // be before growing the map to keep any buckets from having too long of a linked list
 #define GROW_DENSITY 0.75
@@ -52,6 +47,9 @@ void init_map(Map* map, unsigned int initial_size);
 
 // free's all of the memory that map holds, including the values
 void free_map(Map* map);
+
+
+size_t get_count(Map *map);
 
 // returns a res_t holding the value if there is one for the given key.
 //

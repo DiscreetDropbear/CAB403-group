@@ -41,59 +41,9 @@ void free_map(Map* map){
     free(map->buckets);
 }
 
-// TODO: check get_nth_item function again make sure there are no bugs
-pair_t get_nth_item(Map* map, size_t n){
-    pair_t pair = {key: NULL, value: NULL};
-    if(map->items == 0){
-        return pair;         
-    }
-
-    // since there may not be n items in the map
-    // wrap the number around how many items there are
-    // to get a number in the range 0 to (map->items-1)
-    size_t item_n = n % map->items+1;
-
-    // keeps finding the next item untill
-    // found_count == item_n
-    size_t found_count = 0;
-    item_t * current;
-    item_t * last = NULL;
-
-    for(int i = 0; i < map->size; i++){
-        current = map->buckets[i]; 
-        item_t * last = NULL;
-        // there is a linked list of items in this bucket
-        // that we will need to search through 
-        while(current != NULL){
-
-            found_count++;
-            if(found_count == item_n){
-                // remove the current item from the list by joining
-                // the previous item to the next one
-                // Note: this is still valid even if current->next is NULL
-                if(last != NULL){
-                    last->next = current->next; 
-                }
-                else{
-                    map->buckets[i] = current->next;
-                }
-                
-                pair.key = current->key;
-                pair.value = current->value;
-
-                 
-                free(current);
-                map->items--;
-                return pair;
-            }
-
-            
-            last = current;
-            current = current->next;
-        }
-    }
-
-    return pair;
+size_t get_count(Map* map){
+    assert(map != NULL); 
+    return map->items;
 }
 
 // returns a res_t holding the value if there is one for the given key.
@@ -138,7 +88,7 @@ res_t insert(Map* map, char* key, void* value){
     item_t * item = calloc(1, sizeof(item_t));
     // copy the key so the callers copy is still valid after the call
     int len = strlen(key)+1;
-    item->key = malloc(len);
+    item->key = calloc(1, len);
     memcpy(item->key, key, len); 
 
     item->value = value;
@@ -156,6 +106,11 @@ res_t remove_key(Map* map, char* key){
     assert(map != NULL);  
     assert(key != NULL);
 
+    if(map->items == 0){
+        fprintf(stderr, "items is zero\n");
+        exit(-1);
+    }
+
     size_t index = get_index(map, key);
     res_t res;
     res.exists = false;
@@ -168,7 +123,7 @@ res_t remove_key(Map* map, char* key){
     // that we will need to search through 
     while(current != NULL){
         // found the key 
-        if(strcmp(current->key, key) == 0){
+        if(strncmp(current->key, key, 6) == 0){
             // remove the current item from the list by joining
             // the previous item to the next one
             // Note: this is still valid even if current->next is NULL
@@ -200,6 +155,7 @@ res_t remove_key(Map* map, char* key){
 
 bool exists(Map* map, char* key){
     assert(map != NULL);
+    assert(key != NULL);
 
     size_t index = get_index(map, key);
 
@@ -208,7 +164,7 @@ bool exists(Map* map, char* key){
     // that we will need to search through 
     while(current  != NULL){
         // found the key 
-        if(strcmp(current->key, key) == 0){
+        if(strncmp(current->key, key, 6) == 0){
             return true;
         }
         
