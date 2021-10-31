@@ -107,7 +107,6 @@ void * generator(void* _args){
     int num_regos = args->num_regos;
     char* rego;
 
-
     int start = 0;
     while(1){
         
@@ -168,7 +167,7 @@ void * entrance_queue(void * _args){
         
         pthread_mutex_lock(&ENTRANCE_LPR(entrance, shm)->m);  
         pthread_mutex_lock(&ENTRANCE_SIGN(entrance, shm)->m);
-        
+
         // copy the rego into the lpr
         memcpy(&ENTRANCE_LPR(entrance, shm)->rego, rego, 6);
 
@@ -188,12 +187,15 @@ void * entrance_queue(void * _args){
         // the car is allowed in val is between 1 and 5 in ascii 
         // encoding
         if( val >= '1' && val <= '5' ){
-            // val is between 1 and 5 in ascii encoding
-            pthread_mutex_lock(&ENTRANCE_BOOM(entrance, shm)->m);
+
+            fprintf(stderr, "%s - %d\n", rego, count);
             count++;
 
+            pthread_mutex_lock(&ENTRANCE_BOOM(entrance, shm)->m);
+            // val is between 1 and 5 in ascii encoding
             while(ENTRANCE_BOOM(entrance, shm)->state != 'O'){
                 pthread_cond_wait(&ENTRANCE_BOOM(entrance, shm)->c, &ENTRANCE_BOOM(entrance, shm)->m);
+                //fprintf(stderr, "here\n");
             }
             pthread_mutex_unlock(&ENTRANCE_BOOM(entrance, shm)->m);            
 
@@ -374,7 +376,7 @@ void* boom_thread(void * args){
         else if(boom->state == 'R'){
             SLEEP(10);
             boom->state = 'O';
-                pthread_cond_broadcast(&boom->c);
+            pthread_cond_broadcast(&boom->c);
         }
     }
 }

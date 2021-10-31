@@ -19,7 +19,7 @@ void init_shared_mem(volatile void * shm){
     (void) pthread_mutexattr_setpshared(&pmut_attr,
         PTHREAD_PROCESS_SHARED);
     (void) pthread_condattr_init(&pcond_attr);
-    //(void) pthread_condattr_setclock(&pcond_attr, CLOCK_MONOTONIC);
+    (void) pthread_condattr_setclock(&pcond_attr, CLOCK_REALTIME);
     (void) pthread_condattr_setpshared(&pcond_attr,
         PTHREAD_PROCESS_SHARED);
     /// ENTRANCES
@@ -87,13 +87,16 @@ int future_time(struct timespec* out, int milli){
     int res = clock_gettime(CLOCK_REALTIME, out);
     const int billion = 1000000000;
 
-    unsigned long nsec = out->tv_nsec + 1000000 * milli * SLEEP_SCALE;
+    milli = milli * SLEEP_SCALE;
 
+    time_t secs = milli / 1000;
+    milli = milli % 1000;
+    unsigned long nsec = 1000000 * milli;
 
-        // tv_nsec needs to be between 1 and a billion
+    // tv_nsec needs to be between 1 and a billion
     // if its over then add the number of billions
     // its over as seconds and set tv_nsec to the remainder
-    int secs = nsec / billion;
+
     out->tv_sec += secs;
     out->tv_nsec = out->tv_nsec % billion;
 }
