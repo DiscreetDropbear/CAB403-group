@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "include/types.h"
 
 int shm_fd;
 volatile void *shm;
@@ -14,23 +15,8 @@ int alarm_active = 0;
 pthread_mutex_t alarm_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t alarm_condvar = PTHREAD_COND_INITIALIZER;
 
-#define LEVELS 5
-#define ENTRANCES 5
-#define EXITS 5
-
 #define MEDIAN_WINDOW 5
 #define TEMPCHANGE_WINDOW 30
-
-struct boomgate {
-	pthread_mutex_t m;
-	pthread_cond_t c;
-	char s;
-};
-struct parkingsign {
-	pthread_mutex_t m;
-	pthread_cond_t c;
-	char display;
-};
 
 struct tempnode {
 	int temperature;
@@ -48,13 +34,12 @@ struct tempnode *deletenodes(struct tempnode *templist, int after)
 	}
 	return templist;
 }
-int compare(const void *first, const void *second)
-{
+
+int compare(const void *first, const void *second){
 	return *((const int *)first) - *((const int *)second);
 }
 
-void tempmonitor(int level)
-{
+void tempmonitor(int level){
 	struct tempnode *templist = NULL, *newtemp, *medianlist = NULL, *oldesttemp;
 	int count, addr, temp, mediantemp, hightemps;
 	
@@ -127,16 +112,15 @@ void tempmonitor(int level)
 	}
 }
 
-void *openboomgate(void *arg)
-{
-	struct boomgate *bg = arg;
+void *openboomgate(void *arg){
+	struct boom *bg = arg;
 	pthread_mutex_lock(&bg->m);
 	for (;;) {
-		if (bg->s == 'C') {
-			bg->s = 'R';
+		if (bg->state == 'C') {
+			bg->state = 'R';
 			pthread_cond_broadcast(&bg->c);
 		}
-		if (bg->s == 'O') {
+		if (bg->state == 'O') {
 		}
 		pthread_cond_wait(&bg->c, &bg->m);
 	}
@@ -149,19 +133,18 @@ int main()
 	shm_fd = shm_open("PARKING", O_RDWR, 0);
 	shm = (volatile void *) mmap(0, 2920, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 	
-	pthread_t *threads = malloc(sizeof(pthread_t) * LEVELS);
+	pthread_t *threads[]];
 	
 	for (int i = 0; i < LEVELS; i++) {
-		pthread_create(threads + i, NULL, (void *(*)(void *)) tempmonitor, (void *)i);
+		pthread_create(&threads[i] + i, NULL, (void *(*)(void *)) tempmonitor, (void *)i);
 	}
 	for (;;) {
 		if (alarm_active) {
-			goto emergency_mode;
+			break;
 		}
 		usleep(1000);
 	}
 	
-	emergency_mode:
 	fprintf(stderr, "*** ALARM ACTIVE ***\n");
 	
 	// Handle the alarm system and open boom gates
@@ -176,12 +159,12 @@ int main()
 	pthread_t *boomgatethreads = malloc(sizeof(pthread_t) * (ENTRANCES + EXITS));
 	for (int i = 0; i < ENTRANCES; i++) {
 		int addr = 288 * i + 96;
-		volatile struct boomgate *bg = shm + addr;
+		volatile struct boom *bg = shm + addr;
 		pthread_create(boomgatethreads + i, NULL, openboomgate, bg);
 	}
 	for (int i = 0; i < EXITS; i++) {
 		int addr = 192 * i + 1536;
-		volatile struct boomgate *bg = shm + addr;
+		volatile struct boom *bg = shm + addr;
 		pthread_create(boomgatethreads + ENTRANCES + i, NULL, openboomgate, bg);
 	}
 	
@@ -191,7 +174,7 @@ int main()
 		for (char *p = evacmessage; *p != '\0'; p++) {
 			for (int i = 0; i < ENTRANCES; i++) {
 				int addr = 288 * i + 192;
-				volatile struct parkingsign *sign = shm + addr;
+				volatile struct sign *sign = shm + addr;
 				pthread_mutex_lock(&sign->m);
 				sign->display = *p;
 				pthread_cond_broadcast(&sign->c);
