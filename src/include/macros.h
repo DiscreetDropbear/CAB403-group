@@ -5,6 +5,9 @@
 
 #define DISPLAY_THREAD 1 
 
+// means we only get allowed rego's, this is for testing
+#define ONLY_ALLOWED 0 
+
 // sleep macro where duration is milliseconds 
 // we will use this macro to scale the actual sleep time up
 // for testing and debugging purposes
