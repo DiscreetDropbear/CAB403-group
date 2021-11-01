@@ -46,16 +46,71 @@ size_t get_count(Map* map){
     return map->items;
 }
 
+pair_t get_random_item(Map* map){
+    pair_t res;
+    res.key = NULL;
+    res.value = NULL;
+    int seen = 0;
+
+    // map is empty return NULL in res_t fields
+    if(map->items == 0){
+        return res;
+    }
+
+    // get the number of items we will see untill we return
+    // one
+    int item_n = rand() % map->items + 1;
+
+    // visit each bucket in the map untill we see 'item_n' items 
+    for(int i=0; i<map->size; i++){
+        // within each bucket there can be a linked list of items  
+        // we need to search through this linked list
+        item_t* current = map->buckets[i];
+        item_t* last = NULL;  
+        // loop over this 
+        while(current != NULL){
+            seen++;
+            if(seen == item_n){
+                // we have found the item to return
+                // remove it from the bucket and return it
+                if(last == NULL){
+                    // this is the first item in the bucket
+                    // set the next item to the first
+                    map->buckets[i] = current->next;
+                }
+                else{
+                    // we are in the linked list somewhere
+                    // join the last item, with the next item
+                    last->next = current->next;  
+                }
+
+                // we have removed an item
+                map->items--;
+                // here current is removed from the linked list in the 
+                // bucket so we can return its values
+                res.key = current->key;
+                res.value = current->value;
+                
+                return res;
+            }
+
+            // we haven't yet found the item
+            // keep walking the linked list by going
+            // to the next item and saving the last item
+            // NOTE: if this is the last item in the list current will be
+            // set to NULL after the next line and the while loop will exit
+            // going to the next bucket
+            last = current; 
+            current = current->next;
+        }
+    }
+
+    // TODO: remove this
+    fprintf(stderr, "we shouldn't be here\n");
+    exit(-1);
+}
+
 // returns a res_t holding the value if there is one for the given key.
-//
-// NOTE: this value is not copied and referres to the same memory as the one in the
-// map, this means if some other thread removes this rego and free's the value that
-// this will be an invalid pointer, the result should only be dereferenced when you 
-// hold an exclusive lock to the map and once you release this lock all bets are off
-// as to the the validity of the pointer
-//
-// THE VALUE POINTER RETURNED IN RES_T MUST NOT BE FREED AS ITS STILL USED BY THE MAP
-// AND SHOULD BE FREED BY THE CALLER TO remove_key
 res_t search(Map* map, char* key){
     assert(map->size != 0);
     assert(key != NULL);

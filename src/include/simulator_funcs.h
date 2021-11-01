@@ -20,8 +20,6 @@ typedef struct maps{
 typedef struct generator_args{
     
     shared_queue_t* entrance_queues;    
-    char ** regos;
-    int num_regos;
     shared_queue_t* exit_queues;
     maps_t* maps; 
     pthread_mutex_t* rand_m;

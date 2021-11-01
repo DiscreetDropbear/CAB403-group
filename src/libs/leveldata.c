@@ -91,7 +91,6 @@ res_t remove_from_level(level_data_t* ld, size_t l_num, char* rego){
 
 res_t remove_from_all_levels(level_data_t* ld, char* rego){
     int removed = 0;
-    
     for(int i = 0; i<ld->num_levels; i++){
         if(LEVEL_CAPACITY - LEVEL_CAPACITY - cars_in_level(ld, i+1) > 0){
             res_t res = remove_from_level(ld, i+1, rego);

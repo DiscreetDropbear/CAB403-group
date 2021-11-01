@@ -47,6 +47,23 @@ void init_shared_queues(){
 void init_maps(){
     pthread_mutex_init(&maps.m, NULL);
     init_map(&maps.inside, 0);
+    init_map(&maps.outside, 0);
+    init_map(&allow_list, 0);
+
+    // load the regos 
+    char ** regos;
+    int num_regos;
+
+    if(load_regos(&regos, &num_regos) != 0){
+        fprintf(stderr, "error retreiving regos from plates.txt"); 
+        exit(-1);
+    }
+
+    // insert all regos into outside
+    for(int i=0;i<num_regos;i++){
+        insert(&maps.outside, regos[i], NULL); 
+        insert(&allow_list, regos[i], NULL);
+    }
 }
 
 int main() {
@@ -60,15 +77,6 @@ int main() {
     generator_args_t gen_args;
     entr_args_t entr_args[ENTRANCES];
     exit_args_t exit_args[EXITS];
-
-    // load the regos 
-    char ** regos;
-    int num_regos;
-
-    if(load_regos(&regos, &num_regos) != 0){
-        fprintf(stderr, "error retreiving regos from plates.txt"); 
-        exit(-1);
-    }
 
     // set the seed for rand 
     srand(time(0));
@@ -125,8 +133,6 @@ int main() {
 
     /// start car generator thread
     gen_args.entrance_queues = &entrance_queues[0];
-    gen_args.regos = regos;
-    gen_args.num_regos = num_regos;
     gen_args.exit_queues = &exit_queues[0];
     gen_args.maps = &maps;
     gen_args.rand_m = &rand_m;

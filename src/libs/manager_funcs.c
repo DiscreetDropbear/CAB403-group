@@ -29,15 +29,18 @@ int save_billing(FILE* fp ,char* rego, unsigned int bill){
     return 0;
 }
 
-
-void wait_on_lpr(struct lpr_t* lpr, struct boom_t* boom, bool* open, struct timespec gate_close_time ){
+void wait_on_lpr(struct lpr_t* lpr, struct boom_t* boom, bool* open, struct timespec gate_close_time, bool entrance){
     int rt;
-    do{
+
+    while(1){ 
         if(*open){
             rt = pthread_cond_timedwait(&lpr->c, &lpr->m, &gate_close_time);
-
-            if(has_past(gate_close_time)){
+            
+            // simulator cant have boom lock?
+            if(rt == ETIMEDOUT){
+                fprintf(stderr, "stuck - %d", entrance);
                 pthread_mutex_lock(&boom->m);
+                fprintf(stderr, "not stuck - %d", entrance);
                 boom->state = 'L';     
                 while(boom->state != 'C'){
                     pthread_cond_broadcast(&boom->c);
@@ -46,16 +49,126 @@ void wait_on_lpr(struct lpr_t* lpr, struct boom_t* boom, bool* open, struct time
                 *open = false;
                 pthread_mutex_unlock(&boom->m);
             }
+            else if(rt == 0){
+                break;
+            }
+
+            if(rt != 0 && rt != ETIMEDOUT){
+                fprintf(stderr, "pthread_cond_timedwait failed with: %d\n", rt);
+                exit(-1);
+            }
         }
         else{
             // UNLOCK LPR
             pthread_cond_wait(&lpr->c, &lpr->m);
-            rt = 0;
+            break;
         }
     }
-    while(rt != 0);  
 }
 
+void* exit_thread(void* _args){
+    struct exit_args* args = _args;
+    int tn = args->thread_num;
+    volatile void* shm = args->shm;
+    pthread_mutex_t* billing_m = args->billing_m;
+    billing_t* billing = args->billing;
+    FILE* billing_fp = args->billing_fp;
+    unsigned int* total_bill = args->total_bill;
+    pthread_mutex_t* level_m = args->level_m; 
+    level_data_t* level_d = args->level_d;
+    size_t* free_spots = args->free_spots;
+
+    struct boom_t *boom = EXIT_BOOM(tn, shm);
+    struct lpr_t *lpr = EXIT_LPR(tn, shm);
+    struct timespec gate_close_time;
+
+    unsigned long duration_ms; 
+    char * rego = calloc(7, sizeof(char));
+    rego[6] = '\0';
+    assert(rego != NULL);
+
+    struct timespec wait_time;
+    bool open = false; 
+    unsigned long open_duration;
+    int rt = 0;
+
+    int count = 0;
+
+    pthread_mutex_lock(&lpr->m);
+
+    while(1){
+
+        memcpy(&lpr->rego, "------", 6);
+        pthread_cond_wait(&lpr->c, &lpr->m);
+       // wait_on_lpr(lpr, boom, &open, gate_close_time, false);
+
+        // read rego 
+        memcpy(rego, &lpr->rego, 6);
+
+        // LOCK LEVEL DATA
+        pthread_mutex_lock(level_m); 
+        // a car is leaving so we can:  
+        // increase the free spots in the car park
+        // and free up one of the spots in a level
+        (*free_spots) += 1;
+        remove_from_all_levels(level_d, rego);
+        pthread_mutex_unlock(level_m);
+
+        // RELEASE LEVEL DATA
+ 
+        // GET BILLING LOCK
+        pthread_mutex_lock(billing_m);
+        // remove rego from billing data and calcualate bill
+        int res = remove_rego(billing, rego, &duration_ms);
+        assert(res == 0);
+
+        insert(&billing->existed, rego, NULL);
+        // bill is in cents
+        unsigned int bill = duration_ms * 5;
+        *total_bill += bill;
+        
+        if(save_billing(billing_fp ,rego, bill) != 0){
+            fprintf(stderr, "error saving billing information to file");
+            abort();
+        }
+        pthread_mutex_unlock(billing_m);
+
+        // RELEASE BILLING LOCK
+       
+
+        fprintf(stderr, "before signal\n");
+        // signal simulator that removing the rego from all of the 
+        // data structures is done and it can procede
+        // This avoids a race condition of the manager not being able
+        // to remove the regos from the billing and level data before
+        // the simulator tries to send that rego into the system again
+        pthread_cond_signal(&lpr->c);
+        pthread_cond_wait(&lpr->c, &lpr->m);
+
+        pthread_mutex_lock(&boom->m);
+
+        if(boom->state == 'C'){
+            boom->state = 'R';
+            pthread_cond_signal(&boom->c);
+            pthread_cond_wait(&boom->c, &boom->m);
+        }
+        else{
+            if (has_past(gate_close_time) && boom->state == 'O'){
+                boom->state = 'L'; 
+                pthread_cond_signal(&boom->c);
+                pthread_cond_wait(&boom->c, &boom->m);
+                boom->state = 'R';
+                pthread_cond_signal(&boom->c);
+                pthread_cond_wait(&boom->c, &boom->m);
+            }
+            else{
+                pthread_cond_signal(&boom->c);
+            }
+        }
+
+        pthread_mutex_unlock(&boom->m);
+    }
+}
 
 void* entrance_thread(void* _args){
     struct entrance_args* args = _args;
@@ -101,19 +214,15 @@ void* entrance_thread(void* _args){
     int count = 0;
 
     while(1){
-        // set lpr and sign
-        memcpy(&lpr->rego, "------", 6);
 
         pthread_mutex_lock(&sign->m);
-        if(sign->display != 'X'){
+        if(sign->display >= '1' && sign->display <= '5'){
             sign->display = ' ';
         }
         pthread_mutex_unlock(&sign->m);
 
-        // 
-        wait_on_lpr(lpr, boom, &open, gate_close_time);
-
-        pthread_mutex_lock(&boom->m);
+        //wait_on_lpr(lpr, boom, &open, gate_close_time, true);
+        pthread_cond_wait(&lpr->c, &lpr->m);
 
         // read rego 
         memcpy(rego, &lpr->rego, 6);
@@ -126,7 +235,7 @@ void* entrance_thread(void* _args){
             pthread_cond_signal(&sign->c);
             pthread_cond_wait(&sign->c, &sign->m);
             pthread_mutex_unlock(&sign->m);
-            pthread_mutex_unlock(&boom->m);
+            fprintf(stderr, "continue\n");
             continue;
         }
        
@@ -143,7 +252,6 @@ void* entrance_thread(void* _args){
             pthread_cond_signal(&sign->c);
             pthread_cond_wait(&sign->c, &sign->m);
             pthread_mutex_unlock(&sign->m);
-            pthread_mutex_unlock(&boom->m);
             continue;
         }
 
@@ -164,6 +272,7 @@ void* entrance_thread(void* _args){
         // level on the sign and signal the car to read the 
         // sign
         
+
         // ascii encode the level number
         pthread_mutex_lock(&sign->m);
         sign->display = 48 + level;
@@ -171,105 +280,27 @@ void* entrance_thread(void* _args){
         pthread_cond_wait(&sign->c, &sign->m);
         pthread_mutex_unlock(&sign->m);
 
-        if(boom->state == 'C'){
-            boom->state = 'R';     
-            while(boom->state != 'O'){
-                pthread_cond_broadcast(&boom->c);
-                pthread_cond_wait(&boom->c, &boom->m);
-            }
-            future_time(&gate_close_time, 20);
-            open = true;   
-        }
-
-        // manually release the boom gate lock
-        pthread_mutex_unlock(&boom->m);
-    }
-}
-
-void* exit_thread(void* _args){
-    struct exit_args* args = _args;
-    int tn = args->thread_num;
-    volatile void* shm = args->shm;
-    pthread_mutex_t* billing_m = args->billing_m;
-    billing_t* billing = args->billing;
-    FILE* billing_fp = args->billing_fp;
-    unsigned int* total_bill = args->total_bill;
-    pthread_mutex_t* level_m = args->level_m; 
-    level_data_t* level_d = args->level_d;
-    size_t* free_spots = args->free_spots;
-
-    struct boom_t *boom = EXIT_BOOM(tn, shm);
-    struct lpr_t *lpr = EXIT_LPR(tn, shm);
-    struct timespec gate_close_time;
-
-    unsigned long duration_ms; 
-    char * rego = calloc(7, sizeof(char));
-    rego[6] = '\0';
-    assert(rego != NULL);
-
-    struct timespec wait_time;
-    bool open = false; 
-    unsigned long open_duration;
-    int rt = 0;
-
-    int count = 0;
-
-    while(1){
-
-        memcpy(&lpr->rego, "------", 6);
-        wait_on_lpr(lpr, boom, &open, gate_close_time);
 
         pthread_mutex_lock(&boom->m);
-        // read rego 
-        memcpy(rego, &lpr->rego, 6);
-
-        // LOCK LEVEL DATA
-        pthread_mutex_lock(level_m); 
-        // a car is leaving so we can:  
-        // increase the free spots in the car park
-        // and free up one of the spots in a level
-        (*free_spots) += 1;
-        remove_from_all_levels(level_d, rego);
-    
-        pthread_mutex_unlock(level_m);
-        // RELEASE LEVEL DATA
- 
-        // GET BILLING LOCK
-        pthread_mutex_lock(billing_m);
-        // remove rego from billing data and calcualate bill
-        int res = remove_rego(billing, rego, &duration_ms);
-        assert(res == 0);
-
-        insert(&billing->existed, rego, NULL);
-        // bill is in cents
-        unsigned int bill = duration_ms * 5;
-        *total_bill += bill;
-        
-        if(save_billing(billing_fp ,rego, bill) != 0){
-            fprintf(stderr, "error saving billing information to file");
-            abort();
-        }
-        pthread_mutex_unlock(billing_m);
-        // RELEASE BILLING LOCK
-       
-        // signal simulator that removing the rego from all of the 
-        // data structures is done and it can procede
-        // This avoids a race condition of the manager not being able
-        // to remove the regos from the billing and level data before
-        // the simulator tries to send that rego into the system again
-        pthread_cond_signal(&lpr->c);
-        pthread_cond_wait(&lpr->c, &lpr->m);
 
         if(boom->state == 'C'){
-            boom->state = 'R';     
-            while(boom->state != 'O'){
-                pthread_cond_broadcast(&boom->c);
+            boom->state = 'R';
+            pthread_cond_signal(&boom->c);
+            pthread_cond_wait(&boom->c, &boom->m);
+        }
+        else{
+            if (has_past(gate_close_time) && boom->state == 'O' && *LEVEL_ALARM(tn, shm) != 1){
+                boom->state = 'L'; 
+                pthread_cond_signal(&boom->c);
+                pthread_cond_wait(&boom->c, &boom->m);
+                boom->state = 'R';
+                pthread_cond_signal(&boom->c);
                 pthread_cond_wait(&boom->c, &boom->m);
             }
-            future_time(&gate_close_time, 20);
-            open = true;   
+            else{
+                pthread_cond_signal(&boom->c);
+            }
         }
-
         pthread_mutex_unlock(&boom->m);
     }
 }
@@ -328,7 +359,7 @@ void* level_thread(void* _args){
             }
         }
 
-    // UNLOCK LEVEL DATA
+        // UNLOCK LEVEL DATA
         pthread_mutex_unlock(level_m);
         pthread_cond_signal(&lpr->c);
     }
