@@ -46,7 +46,11 @@ void init_shared_queues(){
 
 void init_maps(){
     pthread_mutex_init(&maps.m, NULL);
-    
+    init_map(&maps.inside, 0);
+    init_map(&maps.outside, 0);
+    init_map(&allow_list, 0);
+
+    // load the regos 
     char ** regos;
     int num_regos;
 
@@ -55,26 +59,15 @@ void init_maps(){
         exit(-1);
     }
 
-    init_map(&maps.inside, num_regos);
-    init_map(&maps.outside, num_regos);
-    init_map(&allow_list, num_regos);
-
-    // insert all of the allowed regos into the outside map
-    // and the allow list
-    for(int i = 0; i < num_regos; i++){
-        // this copies the regos so we still have to free our copy
-        insert(&maps.outside, regos[i], NULL);
+    // insert all regos into outside
+    for(int i=0;i<num_regos;i++){
+        insert(&maps.outside, regos[i], NULL); 
         insert(&allow_list, regos[i], NULL);
     }
-
-    // free the memory for regos
-    for(int i = 0; i< num_regos; i++){
-        free(regos[i]);
-    }
-    free(regos);
 }
 
 int main() {
+    pthread_t boom_threads[ENTRANCES+EXITS];
     pthread_t entrance_threads[ENTRANCES];
     pthread_t exit_threads[EXITS];
     pthread_t generator_thread; 
@@ -124,6 +117,7 @@ int main() {
         entr_args[i].outer_level_m = &outer_level_m[0];
 
         pthread_create(&entrance_threads[i], NULL, &entrance_queue, &entr_args[i]);         
+        pthread_create(&boom_threads[i], NULL, &boom_thread, ENTRANCE_BOOM(i+1, shm));
     }
 
     /// start car exit threads (one per exit)
@@ -134,6 +128,7 @@ int main() {
         exit_args[i].exit_queue = &exit_queues[i];
         exit_args[i].maps = &maps;
         pthread_create(&exit_threads[i], NULL, &exit_thr, &exit_args[i]);         
+        pthread_create(&boom_threads[ENTRANCES-1+i], NULL, &boom_thread, EXIT_BOOM(i+1, shm));
     }
 
     /// start car generator thread

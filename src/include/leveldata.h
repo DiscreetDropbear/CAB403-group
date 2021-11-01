@@ -4,7 +4,6 @@
 
 typedef struct level{
     Map cars; // map with regos for keys and bools for values 
-    size_t free_parks;
 } level_t;
 
 typedef struct level_data{
@@ -25,7 +24,7 @@ res_t remove_from_level(level_data_t *ld, size_t l_num, char* key);
 res_t remove_from_all_levels(level_data_t* ld, char* rego);
 // returns true if the given key exists in the level referred to by l_num 
 bool exists_in_level(level_data_t *ld, size_t l_num, char* key);
-// returns the number of free parks in the level referred to by l_num
-size_t levels_free_parks(level_data_t* ld, size_t l_num);
+// returns the number of cars in the level
+size_t cars_in_level(level_data_t* ld, size_t l_num);
 
 #endif

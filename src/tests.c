@@ -4,9 +4,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include "include/map.h"
 #include "include/queue.h"
 #include "assert.h"
+#include "include/utils.h"
 
 void run_map_tests();
 void run_queue_tests();
