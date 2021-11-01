@@ -438,7 +438,6 @@ void * temp_setter(void * _args){
                 continue;
             }
 
-            change_val = 1;
             // 51% of the time
             if(change_val <= 50){
                 change_val = 1;
@@ -452,8 +451,27 @@ void * temp_setter(void * _args){
                 change_val = 3; 
             }
             // 6% of the time
-            else if(change_val > 87 && change_val <= 93){
+            else if(change_val > 87 && change_val <= 96){
                 change_val = 4; 
+            }
+
+            else if(change_val > 97 && change_val <= 98){
+                
+                // fixed temp
+                
+
+            }
+
+            else if(change_val > 98 && change_val <= 100){
+
+                // rate of rise
+                short rate_val = 10;
+
+                for (size_t a = 0; a < 30; a++){
+                    *LEVEL_TEMP(i,shm) += rate_val; 
+                    rate_val = rate_val + 5;
+                }
+                
             }
 
             int middle = 10;

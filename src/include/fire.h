@@ -21,4 +21,16 @@ typedef struct ring_buffer{
 } ring_buffer;
 
 
+struct tempnode {
+	int temperature;
+	struct tempnode *next;
+};
+
+
 void cb_init(ring_buffer *cb, size_t capacity, size_t size);
+
+void cb_free(ring_buffer *cb);
+
+void cb_push_back(ring_buffer *cb, const void *item);
+
+void cb_pop_front(ring_buffer *cb, void *item);

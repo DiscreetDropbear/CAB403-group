@@ -15,13 +15,6 @@ int alarm_active = 0;
 pthread_mutex_t alarm_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t alarm_condvar = PTHREAD_COND_INITIALIZER;
 
-#define MEDIAN_WINDOW 5
-#define TEMPCHANGE_WINDOW 30
-
-struct tempnode {
-	int temperature;
-	struct tempnode *next;
-};
 
 struct tempnode *deletenodes(struct tempnode *templist, int after)
 {

@@ -36,7 +36,7 @@ void cb_push_back(ring_buffer *cb, const void *item){
         cb->head = cb->buffer;
     }
     
-    if (count < capacity){
+    if (cb->count < cb->capacity){
        cb->count++;
     }
 }
