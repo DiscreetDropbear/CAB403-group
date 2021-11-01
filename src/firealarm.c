@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "include/types.h"
+#include "include/fire.h"
+
 
 int shm_fd;
 volatile void *shm;
@@ -16,17 +18,6 @@ pthread_mutex_t alarm_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t alarm_condvar = PTHREAD_COND_INITIALIZER;
 
 
-struct tempnode *deletenodes(struct tempnode *templist, int after)
-{
-	if (templist->next) {
-		templist->next = deletenodes(templist->next, after - 1);
-	}
-	if (after <= 0) {
-		free(templist);
-		return NULL;
-	}
-	return templist;
-}
 
 int compare(const void *first, const void *second){
 	return *((const int *)first) - *((const int *)second);

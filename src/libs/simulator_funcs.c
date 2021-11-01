@@ -458,20 +458,24 @@ void * temp_setter(void * _args){
             else if(change_val > 97 && change_val <= 98){
                 
                 // fixed temp
-                
+                short fixed_val = 65;
 
+                for (size_t a = 0; a < 55; a++){
+                    *LEVEL_TEMP(i,shm) = fixed_val; 
+                } 
+                change_val = 0;
             }
 
             else if(change_val > 98 && change_val <= 100){
 
                 // rate of rise
-                short rate_val = 10;
+                short rate_val = 11;
 
                 for (size_t a = 0; a < 30; a++){
                     *LEVEL_TEMP(i,shm) += rate_val; 
-                    rate_val = rate_val + 5;
+                    rate_val = rate_val + 1;
                 }
-                
+                change_val = 0;
             }
 
             int middle = 10;

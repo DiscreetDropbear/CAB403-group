@@ -26,6 +26,19 @@ struct tempnode {
 	struct tempnode *next;
 };
 
+struct tempnode *deletenodes(struct tempnode *templist, int after)
+{
+	if (templist->next) {
+		templist->next = deletenodes(templist->next, after - 1);
+	}
+	if (after <= 0) {
+		free(templist);
+		return NULL;
+	}
+	return templist;
+}
+
+
 
 void cb_init(ring_buffer *cb, size_t capacity, size_t size);
 
