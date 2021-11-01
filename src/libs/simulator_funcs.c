@@ -431,7 +431,7 @@ void * temp_setter(void * _args){
             pthread_mutex_lock(rand_m); 
             sleep_time = (rand() % 5) +1;
             change = rand() % 100;
-            change_val = rand() % 100; 
+            change_val = rand() % 30000; 
             pthread_mutex_unlock(rand_m);
             
             if(change <= 80){
@@ -439,43 +439,43 @@ void * temp_setter(void * _args){
             }
 
             // 51% of the time
-            if(change_val <= 50){
+            if(change_val <= 15000){
                 change_val = 1;
             }
             // 25% of the time
-            else if(change_val > 50 && change_val <= 75){
+            else if(change_val > 15000 && change_val <= 20000){
                 change_val = 2;
             }
             // 12% of the time
-            else if(change_val > 75 && change_val <= 87){
+            else if(change_val > 20000 && change_val <= 25000){
                 change_val = 3; 
             }
             // 6% of the time
-            else if(change_val > 87 && change_val <= 96){
+            else if(change_val > 25000 && change_val <= 29997){
                 change_val = 4; 
             }
 
-            else if(change_val > 97 && change_val <= 98){
+            else if(change_val > 29997 && change_val <= 29998){
                 
                 // fixed temp
                 short fixed_val = 65;
 
-                for (size_t a = 0; a < 55; a++){
+                for (size_t a = 0; a < 30; a++){
                     *LEVEL_TEMP(i,shm) = fixed_val; 
                 } 
-                change_val = 0;
+                change_val = 1;
             }
 
-            else if(change_val > 98 && change_val <= 100){
+            else if(change_val > 29998 && change_val <= 30000){
 
                 // rate of rise
-                short rate_val = 11;
+                short rate_val = 1;
 
                 for (size_t a = 0; a < 30; a++){
                     *LEVEL_TEMP(i,shm) += rate_val; 
-                    rate_val = rate_val + 1;
+                    rate_val ++;
                 }
-                change_val = 0;
+                change_val = 1;
             }
 
             int middle = 10;
